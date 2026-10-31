@@ -1,0 +1,31 @@
+{% extends "admin/login_base.html" %}
+
+<!--
+========== 后台登录 ==========
+-->
+
+{% block title %}后台登录 · {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>后台登录</h1>
+    <p>只有管理员可以进入。</p>
+  </hgroup>
+
+  {% if error %}
+    <p style="color: #c0392b;"><strong>{{ error }}</strong></p>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('login') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <label>
+      管理员邮箱
+      <input type="email" name="username" value="{{ username or '' }}" required autofocus>
+    </label>
+    <label>
+      密码
+      <input type="password" name="password" required>
+    </label>
+    <button type="submit">登录</button>
+  </form>
+{% endblock %}

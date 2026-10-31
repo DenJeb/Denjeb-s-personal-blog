@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+<!--
+========== 文章归档 ==========
+-->
+
+{% block title %}归档 · {{ app_name }}{% endblock %}
+{% block description %}文章归档 - {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>归档</h1>
+    <p>共 {{ total }} 篇文章</p>
+  </hgroup>
+
+  {% for year, months in archive.items() %}
+    <section>
+      <h2>{{ year }} 年</h2>
+      {% for month, posts in months.items() %}
+        <h3>{{ "%02d" | format(month) }} 月</h3>
+        <ul>
+          {% for post in posts %}
+            <li>
+              <a href="{{ url_for('post_detail', post_id=post.id) }}">{{ post.title }}</a>
+              <small>{{ post.published_at }}</small>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endfor %}
+    </section>
+  {% else %}
+    <p>还没有文章。</p>
+  {% endfor %}
+{% endblock %}

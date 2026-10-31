@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+<!--
+========== 邮箱验证码登录 ==========
+-->
+
+{% block title %}验证码登录 · {{ app_name }}{% endblock %}
+{% block description %}使用邮箱验证码登录 {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>验证码登录</h1>
+    <p>不输入密码，用邮箱验证码登录。</p>
+  </hgroup>
+
+  {% if error %}
+    <p style="color: #c0392b;"><strong>{{ error }}</strong></p>
+  {% endif %}
+
+  {% if pending %}
+    <p>验证码已发送到 {{ pending["email"] }}。</p>
+
+    <form method="post" action="{{ url_for('user_login_code_verify') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+      <label>
+        验证码
+        <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus>
+      </label>
+      <button type="submit">登录</button>
+    </form>
+
+    <form method="post" action="{{ url_for('user_login_code_send') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+      <input type="hidden" name="email" value="{{ pending['email'] }}">
+      <input type="hidden" name="next" value="{{ pending['next'] }}">
+      <button type="submit" class="secondary outline">重新发送验证码</button>
+    </form>
+  {% else %}
+    <form method="post" action="{{ url_for('user_login_code_send') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label>
+        邮箱
+        <input type="email" name="email" value="{{ email or '' }}" required autofocus>
+      </label>
+      <button type="submit">发送验证码</button>
+    </form>
+  {% endif %}
+
+  <p>
+    <small><a href="{{ url_for('user_login_page') }}?next={{ next | urlencode }}">使用密码登录</a></small>
+    ·
+    <small><a href="{{ url_for('user_register_page') }}?next={{ next | urlencode }}">注册</a></small>
+  </p>
+{% endblock %}

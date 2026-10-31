@@ -1,0 +1,61 @@
+{% extends "admin/base.html" %}
+
+<!--
+========== 后台用户管理 ==========
+-->
+
+{% block title %}用户管理 · {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>用户管理</h1>
+    <p>共 {{ total }} 个注册用户</p>
+  </hgroup>
+
+  {% if saved %}
+    <p><mark>操作成功。</mark></p>
+  {% endif %}
+
+  {% if deleted %}
+    <p><mark>用户已删除。</mark></p>
+  {% endif %}
+
+  <table role="grid">
+    <thead>
+      <tr>
+        <th>邮箱</th>
+        <th>昵称</th>
+        <th>注册时间</th>
+        <th>状态</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+        <tr>
+          <td>{{ user.email or "-" }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>
+            {% if user.is_active %}
+              <ins>正常</ins>
+            {% else %}
+              <mark>已禁用</mark>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('user_toggle', user_id=user.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+              <button type="submit" class="secondary outline">{{ "禁用" if user.is_active else "启用" }}</button>
+            </form>
+            <a href="{{ url_for('user_delete_confirm', user_id=user.id) }}">删除</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">还没有注册用户。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "_pagination.html" %}
+{% endblock %}

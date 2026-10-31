@@ -1,0 +1,25 @@
+{% if total_pages > 1 %}
+  <nav aria-label="分页">
+    <ul>
+      <li>
+        {% if has_prev %}
+          <a href="{{ page_url(request, page - 1, param | default('page')) }}{% if anchor %}#{{ anchor }}{% endif %}">← 上一页</a>
+        {% else %}
+          <span>← 上一页</span>
+        {% endif %}
+      </li>
+    </ul>
+    <ul>
+      <li>第 {{ page }} / {{ total_pages }} 页</li>
+    </ul>
+    <ul>
+      <li>
+        {% if has_next %}
+          <a href="{{ page_url(request, page + 1, param | default('page')) }}{% if anchor %}#{{ anchor }}{% endif %}">下一页 →</a>
+        {% else %}
+          <span>下一页 →</span>
+        {% endif %}
+      </li>
+    </ul>
+  </nav>
+{% endif %}

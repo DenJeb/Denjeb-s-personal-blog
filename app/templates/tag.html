@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+<!--
+========== 标签文章列表 ==========
+-->
+
+{% block title %}标签：{{ tag }} · {{ app_name }}{% endblock %}
+{% block description %}标签 {{ tag }} 下的文章 - {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>标签：{{ tag }}</h1>
+    <p>共 {{ total }} 篇文章</p>
+  </hgroup>
+
+  {% for post in posts %}
+    {% include "_post_card.html" %}
+  {% else %}
+    <p>这个标签下还没有文章。</p>
+  {% endfor %}
+
+  {% if total_pages > 1 %}
+    <nav aria-label="分页">
+      <ul>
+        <li>
+          {% if has_prev %}
+            <a href="{{ tag_url(tag, page=page - 1) }}">← 上一页</a>
+          {% else %}
+            <span>← 上一页</span>
+          {% endif %}
+        </li>
+      </ul>
+      <ul>
+        <li>第 {{ page }} / {{ total_pages }} 页</li>
+      </ul>
+      <ul>
+        <li>
+          {% if has_next %}
+            <a href="{{ tag_url(tag, page=page + 1) }}">下一页 →</a>
+          {% else %}
+            <span>下一页 →</span>
+          {% endif %}
+        </li>
+      </ul>
+    </nav>
+  {% endif %}
+
+  <p><a href="{{ url_for('tags_page') }}">← 全部标签</a></p>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+<!--
+========== 422 页面 ==========
+-->
+
+{% block title %}请求参数不正确 · {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>422</h1>
+    <p>请求参数不正确，请检查后重试。</p>
+  </hgroup>
+
+  <p><a href="{{ url_for('index') }}">← 返回首页</a></p>
+{% endblock %}

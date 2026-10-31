@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+<!--
+========== 搜索 ==========
+-->
+
+{% block title %}搜索 · {{ app_name }}{% endblock %}
+{% block description %}搜索文章 - {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>搜索</h1>
+    <p>搜索标题、摘要和正文。</p>
+  </hgroup>
+
+  <form method="get" action="{{ url_for('search_page') }}">
+    <fieldset role="group">
+      <input type="search" name="q" value="{{ q }}" placeholder="输入关键词" aria-label="搜索关键词" autofocus>
+      <button type="submit">搜索</button>
+    </fieldset>
+  </form>
+
+  {% if q %}
+    <h2>“{{ q }}” 的搜索结果</h2>
+    <p>共 {{ total }} 篇</p>
+
+    {% for post in posts %}
+      {% include "_post_card.html" %}
+    {% else %}
+      <p>没有找到相关文章。</p>
+    {% endfor %}
+
+    {% if total_pages > 1 %}
+      <nav aria-label="分页">
+        <ul>
+          <li>
+            {% if has_prev %}
+              <a href="{{ url_for('search_page') }}?q={{ q | urlencode }}&amp;page={{ page - 1 }}">← 上一页</a>
+            {% else %}
+              <span>← 上一页</span>
+            {% endif %}
+          </li>
+        </ul>
+        <ul>
+          <li>第 {{ page }} / {{ total_pages }} 页</li>
+        </ul>
+        <ul>
+          <li>
+            {% if has_next %}
+              <a href="{{ url_for('search_page') }}?q={{ q | urlencode }}&amp;page={{ page + 1 }}">下一页 →</a>
+            {% else %}
+              <span>下一页 →</span>
+            {% endif %}
+          </li>
+        </ul>
+      </nav>
+    {% endif %}
+  {% endif %}
+{% endblock %}

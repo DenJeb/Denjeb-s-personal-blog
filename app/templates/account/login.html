@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+<!--
+========== 用户登录 ==========
+-->
+
+{% block title %}登录 · {{ app_name }}{% endblock %}
+{% block description %}登录 {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>登录</h1>
+    <p>登录后可以参与评论。</p>
+  </hgroup>
+
+  {% if request.query_params.get("reset") == "1" %}
+    <p><mark>密码已重置，请使用新密码登录。</mark></p>
+  {% endif %}
+
+  {% if request.query_params.get("deleted") == "1" %}
+    <p><mark>账号已注销，24 小时内该邮箱不能重新注册。</mark></p>
+  {% endif %}
+
+  {% if error %}
+    <p style="color: #c0392b;"><strong>{{ error }}</strong></p>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('user_login') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <input type="hidden" name="next" value="{{ next }}">
+    <label>
+      邮箱
+      <input type="email" name="email" value="{{ email or '' }}" required autofocus>
+    </label>
+    <label>
+      密码
+      <input type="password" name="password" required>
+    </label>
+    <button type="submit">登录</button>
+  </form>
+
+  <p>
+    <small><a href="{{ url_for('user_login_code_page') }}?next={{ next | urlencode }}">使用邮箱验证码登录</a></small>
+  </p>
+
+  <p>
+    <small>还没有账号？<a href="{{ url_for('user_register_page') }}?next={{ next | urlencode }}">注册</a></small>
+    ·
+    <small><a href="{{ url_for('user_forgot_password_page') }}">忘记密码</a></small>
+  </p>
+{% endblock %}

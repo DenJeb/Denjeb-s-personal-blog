@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+<!--
+========== 标签索引 ==========
+-->
+
+{% block title %}标签 · {{ app_name }}{% endblock %}
+{% block description %}全部标签 - {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>标签</h1>
+    <p>共 {{ tags | length }} 个标签</p>
+  </hgroup>
+
+  <p>
+    {% for tag, count in tags %}
+      <a href="{{ tag_url(tag) }}">{{ tag }} ({{ count }})</a>{% if not loop.last %} · {% endif %}
+    {% else %}
+      还没有标签。
+    {% endfor %}
+  </p>
+{% endblock %}

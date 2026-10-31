@@ -1,0 +1,62 @@
+{% extends "admin/base.html" %}
+
+<!--
+========== 后台笔记编辑 ==========
+-->
+
+{% block title %}编辑笔记 · {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>{% if note %}编辑笔记{% else %}新建笔记{% endif %}</h1>
+    <p>{% if note %}{{ note.title }}{% else %}写一篇新笔记。{% endif %}</p>
+  </hgroup>
+
+  {% if error %}
+    <p style="color: #c0392b;"><strong>{{ error }}</strong></p>
+  {% endif %}
+
+  <form method="post" action="{% if note %}{{ url_for('note_edit', note_id=note.id) }}{% else %}{{ url_for('note_create') }}{% endif %}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <label>
+      标题
+      <input type="text" name="title" value="{{ form.title }}" maxlength="200" required>
+    </label>
+
+    <label>
+      摘要
+      <input type="text" name="summary" value="{{ form.summary }}" maxlength="500">
+    </label>
+
+    <label>
+      分类
+      <select name="category_id" required>
+        {% for category in categories %}
+          <option value="{{ category.id }}" {% if category.id == form.category_id %}selected{% endif %}>{{ category.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      发布日期
+      <input type="date" name="published_at" value="{{ form.published_at }}" required>
+    </label>
+
+    <label>
+      标签（逗号分隔）
+      <input type="text" name="tags" value="{{ form.tags }}" placeholder="例如：C++, STL">
+    </label>
+
+    <label>
+      正文
+      <textarea name="content" rows="18" required>{{ form.content }}</textarea>
+    </label>
+
+    <button type="submit">保存</button>
+    <a href="{{ url_for('admin_notes') }}" role="button" class="secondary">取消</a>
+  </form>
+
+  {% if note %}
+    <p><a href="{{ url_for('note_delete_confirm', note_id=note.id) }}" class="secondary">删除这篇笔记</a></p>
+  {% endif %}
+{% endblock %}

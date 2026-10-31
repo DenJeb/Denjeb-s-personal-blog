@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+<!--
+========== 博客文章详情 ==========
+-->
+
+{% block title %}{{ post.title }} · {{ app_name }}{% endblock %}
+{% block description %}{{ post.summary or post.title }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block head_extra %}
+  <script type="application/ld+json">{{ post_json_ld | safe }}</script>
+{% endblock %}
+
+{% block content %}
+  <article>
+    <header>
+      <h1>{{ post.title }}</h1>
+      <p>
+        <small>
+          {{ post.published_at }}
+          {% if post.tags %}
+            · {% for tag in post.tags %}<a href="{{ tag_url(tag) }}">{{ tag }}</a>{% if not loop.last %} / {% endif %}{% endfor %}
+          {% endif %}
+        </small>
+      </p>
+    </header>
+    <div class="markdown-body">
+      {% if post.content_html %}
+        {{ post.content_html | safe }}
+      {% else %}
+        <p>{{ post.content }}</p>
+      {% endif %}
+    </div>
+  </article>
+
+  <section id="comments">
+    <h2>评论（{{ comment_total }}）</h2>
+
+    {% for comment in comments %}
+      <article>
+        <header>
+          <strong>{{ comment.author_name }}</strong>
+          <small>{{ comment.created_at.strftime("%Y-%m-%d %H:%M") }}</small>
+        </header>
+        <p>{{ comment.content }}</p>
+      </article>
+    {% else %}
+      <p>还没有评论。</p>
+    {% endfor %}
+
+    {% set page = comment_page %}
+    {% set total_pages = comment_total_pages %}
+    {% set has_prev = comment_has_prev %}
+    {% set has_next = comment_has_next %}
+    {% set param = "comment_page" %}
+    {% set anchor = "comments" %}
+    {% include "_pagination.html" %}
+
+    {% if request.query_params.get("comment") == "submitted" %}
+      <p><mark>评论已提交，审核通过后会显示。</mark></p>
+    {% elif request.query_params.get("comment") == "invalid" %}
+      <p><mark>评论内容不能为空。</mark></p>
+    {% elif request.query_params.get("comment") == "too_fast" %}
+      <p><mark>评论太快了，请 15 秒后再试。</mark></p>
+    {% endif %}
+
+    {% if commenter %}
+      <p><small>以 {{ commenter }} 的身份评论</small></p>
+      <form method="post" action="{{ url_for('submit_comment', post_id=post.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+        <div style="display: none;">
+          <label>网站 <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+        </div>
+        <label>
+          评论
+          <textarea name="content" rows="4" maxlength="2000" required></textarea>
+        </label>
+        <button type="submit">提交评论</button>
+      </form>
+    {% else %}
+      <p>
+        <a href="{{ url_for('user_login_page') }}?next=/posts/{{ post.id }}">登录</a>
+        或 <a href="{{ url_for('user_register_page') }}?next=/posts/{{ post.id }}">注册</a> 后才能评论。
+      </p>
+    {% endif %}
+  </section>
+
+  <p><a href="{{ url_for('index') }}">← 返回首页</a></p>
+{% endblock %}

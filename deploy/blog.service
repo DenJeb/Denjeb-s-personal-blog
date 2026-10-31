@@ -1,0 +1,22 @@
+[Unit]
+Description=Personal blog (FastAPI + Uvicorn)
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/srv/blog
+EnvironmentFile=/srv/blog/.env
+ExecStart=/srv/blog/.venv/bin/uvicorn app.main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --proxy-headers \
+    --forwarded-allow-ips=127.0.0.1
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

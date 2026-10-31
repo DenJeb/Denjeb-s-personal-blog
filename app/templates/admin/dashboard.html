@@ -1,0 +1,40 @@
+{% extends "admin/base.html" %}
+
+<!--
+========== 后台首页 ==========
+-->
+
+{% block title %}后台 · {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>后台</h1>
+    <p>欢迎，{{ admin.username }}。</p>
+  </hgroup>
+
+  <div class="grid">
+    <article>
+      <header><strong>博客文章</strong></header>
+      <p>{{ post_count }} 篇</p>
+      <a href="{{ url_for('admin_posts') }}" role="button">管理文章</a>
+    </article>
+
+    <article>
+      <header><strong>学习笔记</strong></header>
+      <p>{{ note_count }} 篇</p>
+      <a href="{{ url_for('admin_notes') }}" role="button">管理笔记</a>
+    </article>
+
+    <article>
+      <header><strong>评论</strong></header>
+      <p>{{ comment_count }} 条，待审核 {{ pending_count }} 条</p>
+      <a href="{{ url_for('admin_comments') }}" role="button">管理评论</a>
+    </article>
+
+    <article>
+      <header><strong>注册用户</strong></header>
+      <p>{{ user_count }} 人</p>
+      <a href="{{ url_for('admin_users') }}" role="button">管理用户</a>
+    </article>
+  </div>
+{% endblock %}

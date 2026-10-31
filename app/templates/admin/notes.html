@@ -1,0 +1,52 @@
+{% extends "admin/base.html" %}
+
+<!--
+========== 后台笔记列表 ==========
+-->
+
+{% block title %}笔记管理 · {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>笔记管理</h1>
+    <p>共 {{ total }} 篇</p>
+  </hgroup>
+
+  <p><a href="{{ url_for('note_create_page') }}" role="button">新建笔记</a></p>
+
+  {% if saved %}
+    <p><mark>保存成功。</mark></p>
+  {% endif %}
+
+  {% if deleted %}
+    <p><mark>删除成功。</mark></p>
+  {% endif %}
+
+  <table role="grid">
+    <thead>
+      <tr>
+        <th>标题</th>
+        <th>分类</th>
+        <th>发布日期</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for note in notes %}
+        <tr>
+          <td>{{ note.title }}</td>
+          <td>{{ note.category.name }}</td>
+          <td>{{ note.published_at }}</td>
+          <td>
+            <a href="{{ url_for('note_edit_page', note_id=note.id) }}">编辑</a> ·
+            <a href="{{ url_for('note_delete_confirm', note_id=note.id) }}">删除</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4">还没有笔记。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "_pagination.html" %}
+{% endblock %}

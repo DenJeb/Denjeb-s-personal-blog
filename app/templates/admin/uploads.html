@@ -1,0 +1,67 @@
+{% extends "admin/base.html" %}
+
+<!--
+========== 后台图片管理 ==========
+-->
+
+{% block title %}图片管理 · {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>图片管理</h1>
+    <p>共 {{ total }} 个文件</p>
+  </hgroup>
+
+  {% if deleted %}
+    <p><mark>图片已删除。</mark></p>
+  {% endif %}
+
+  {% if in_use %}
+    <p><mark>图片仍被文章或笔记引用，不能删除。</mark></p>
+  {% endif %}
+
+  {% if error %}
+    <p><mark>删除失败，请稍后重试。</mark></p>
+  {% endif %}
+
+  <table role="grid">
+    <thead>
+      <tr>
+        <th>文件</th>
+        <th>大小</th>
+        <th>状态</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for file in files %}
+        <tr>
+          <td><a href="{{ file.url }}" target="_blank" rel="noopener">{{ file.name }}</a></td>
+          <td>{{ (file.size / 1024) | round(1) }} KB</td>
+          <td>
+            {% if file.referenced %}
+              <ins>已引用</ins>
+            {% else %}
+              <mark>未引用</mark>
+            {% endif %}
+          </td>
+          <td>
+            {% if file.referenced %}
+              使用中
+            {% else %}
+              <form method="post" action="{{ url_for('delete_upload') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <input type="hidden" name="path" value="{{ file.name }}">
+                <button type="submit" class="secondary outline">删除</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4">还没有上传图片。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "_pagination.html" %}
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+<!--
+========== 用户注册 ==========
+-->
+
+{% block title %}注册 · {{ app_name }}{% endblock %}
+{% block description %}注册 {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>注册</h1>
+    <p>注册后可以参与评论，评论会先进入审核。</p>
+  </hgroup>
+
+  <p><small>提交后会向邮箱发送验证码，验证通过账号才会创建。</small></p>
+
+  {% if error %}
+    <p style="color: #c0392b;"><strong>{{ error }}</strong></p>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('user_register') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <input type="hidden" name="next" value="{{ next }}">
+    <div style="display: none;">
+      <label>网站 <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+    </div>
+    <label>
+      邮箱
+      <input type="email" name="email" value="{{ email or '' }}" maxlength="255" required autofocus>
+    </label>
+    <label>
+      昵称
+      <input type="text" name="nickname" value="{{ nickname or '' }}" minlength="3" maxlength="30" required>
+    </label>
+    <label>
+      密码（至少 8 位）
+      <input type="password" name="password" minlength="8" required>
+    </label>
+    <label>
+      确认密码
+      <input type="password" name="confirm" minlength="8" required>
+    </label>
+    <button type="submit">注册并发送验证码</button>
+  </form>
+
+  <p>
+    <small>已有账号？<a href="{{ url_for('user_login_page') }}?next={{ next | urlencode }}">登录</a></small>
+    ·
+    <small><a href="{{ url_for('user_login_code_page') }}?next={{ next | urlencode }}">验证码登录</a></small>
+  </p>
+{% endblock %}

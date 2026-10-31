@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+<!--
+========== 学习笔记（整理中） ==========
+-->
+
+{% block title %}笔记 · {{ app_name }}{% endblock %}
+{% block description %}学习笔记整理中 - {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>学习笔记</h1>
+    <p>随学随记，分类整理</p>
+  </hgroup>
+
+  <article>
+    <header><strong>整理中</strong></header>
+    <p>笔记还在整理，先去看看博客文章吧。</p>
+  </article>
+
+  <p><a href="{{ url_for('index') }}" role="button">返回首页</a></p>
+{% endblock %}

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!--
+========== 后台布局 ==========
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}后台 · {{ app_name }}{% endblock %}</title>
+  {% include "_theme_head.html" %}
+  <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/pico.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li><strong><a href="{{ url_for('dashboard') }}">后台</a></strong></li>
+      </ul>
+      <ul>
+        <li><a href="{{ url_for('admin_posts') }}">文章</a></li>
+        <li><a href="{{ url_for('admin_notes') }}">笔记</a></li>
+        <li><a href="{{ url_for('admin_categories') }}">分类</a></li>
+        <li><a href="{{ url_for('admin_comments') }}">评论</a></li>
+        <li><a href="{{ url_for('admin_uploads') }}">图片</a></li>
+        <li><a href="{{ url_for('admin_users') }}">用户</a></li>
+        <li><a href="{{ url_for('index') }}" target="_blank" rel="noopener">前台</a></li>
+        {% include "_theme_button.html" %}
+        <li>
+          <form method="post" action="{{ url_for('logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+            <button type="submit" class="secondary outline">退出</button>
+          </form>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="container">
+    <small>后台 · {{ app_name }}</small>
+  </footer>
+  <script src="{{ url_for('static', path='/js/theme.js') }}"></script>
+</body>
+</html>

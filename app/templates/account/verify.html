@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+<!--
+========== 注册邮箱验证 ==========
+-->
+
+{% block title %}验证邮箱 · {{ app_name }}{% endblock %}
+{% block description %}验证邮箱 {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>验证邮箱</h1>
+    <p>验证码已发送到 {{ email }}。</p>
+  </hgroup>
+
+  {% if request.query_params.get("resent") == "1" %}
+    <p><mark>验证码已重新发送。</mark></p>
+  {% endif %}
+
+  {% if error %}
+    <p style="color: #c0392b;"><strong>{{ error }}</strong></p>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('user_register_verify') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <label>
+      验证码
+      <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus>
+    </label>
+    <button type="submit">验证</button>
+  </form>
+
+  <form method="post" action="{{ url_for('user_register_resend') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <button type="submit" class="secondary outline">重新发送验证码</button>
+  </form>
+
+  <p><small>
+    没有收到？检查垃圾邮件，或 <a href="{{ url_for('user_register_page') }}">重新注册</a>。
+    本地开发未配置 SMTP 时，验证码会打印在后端终端。
+  </small></p>
+{% endblock %}

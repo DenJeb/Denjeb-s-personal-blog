@@ -1,0 +1,63 @@
+{% extends "admin/base.html" %}
+
+<!--
+========== 后台文章列表 ==========
+-->
+
+{% block title %}文章管理 · {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>文章管理</h1>
+    <p>共 {{ total }} 篇</p>
+  </hgroup>
+
+  <p><a href="{{ url_for('post_create_page') }}" role="button">新建文章</a></p>
+
+  {% if saved %}
+    <p><mark>保存成功。</mark></p>
+  {% endif %}
+
+  {% if deleted %}
+    <p><mark>删除成功。</mark></p>
+  {% endif %}
+
+  <table role="grid">
+    <thead>
+      <tr>
+        <th>标题</th>
+        <th>发布日期</th>
+        <th>状态</th>
+        <th>标签</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for post in posts %}
+        <tr>
+          <td>{{ post.title }}</td>
+          <td>{{ post.published_at }}</td>
+          <td>
+            {% if not post.is_published %}
+              <mark>草稿</mark>
+            {% elif post.published_at > today %}
+              <ins>待发布</ins>
+            {% else %}
+              <ins>已发布</ins>
+            {% endif %}
+          </td>
+          <td>{{ post.tags | join(" / ") }}</td>
+          <td>
+            <a href="{{ url_for('post_detail', post_id=post.id) }}" target="_blank" rel="noopener">预览</a> ·
+            <a href="{{ url_for('post_edit_page', post_id=post.id) }}">编辑</a> ·
+            <a href="{{ url_for('post_delete_confirm', post_id=post.id) }}">删除</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">还没有文章。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "_pagination.html" %}
+{% endblock %}
