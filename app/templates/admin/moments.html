@@ -1,0 +1,52 @@
+{% extends "admin/base.html" %}
+
+<!--
+========== 后台动态管理 ==========
+-->
+
+{% block title %}动态管理 · {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>动态管理</h1>
+    <p>共 {{ total }} 条</p>
+  </hgroup>
+
+  <p><a href="{{ url_for('moment_create_page') }}" role="button">发布动态</a></p>
+
+  {% if saved %}
+    <p><mark>保存成功。</mark></p>
+  {% endif %}
+
+  {% if deleted %}
+    <p><mark>删除成功。</mark></p>
+  {% endif %}
+
+  <table role="grid">
+    <thead>
+      <tr>
+        <th>内容</th>
+        <th>发布时间</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for moment in moments %}
+        {% set public_page = moment_pages[moment.id] %}
+        <tr>
+          <td>{{ moment.content[:80] }}{% if moment.content | length > 80 %}…{% endif %}</td>
+          <td>{{ moment.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>
+            <a href="{{ url_for('moments_page') }}{% if public_page > 1 %}?page={{ public_page }}{% endif %}#moment-{{ moment.id }}" target="_blank" rel="noopener">预览</a> ·
+            <a href="{{ url_for('moment_edit_page', moment_id=moment.id) }}{% if page > 1 %}?page={{ page }}{% endif %}">编辑</a> ·
+            <a href="{{ url_for('moment_delete_confirm', moment_id=moment.id) }}{% if page > 1 %}?page={{ page }}{% endif %}">删除</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3">还没有动态。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "_pagination.html" %}
+{% endblock %}

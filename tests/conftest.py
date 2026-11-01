@@ -47,6 +47,9 @@ from app.main import app  # noqa: E402
 from app.models import (  # noqa: E402
     AdminUser,
     EmailRegistrationBlock,
+    Message,
+    Moment,
+    MomentComment,
     RateLimitEvent,
     User,
     VerificationCode,
@@ -127,6 +130,9 @@ def prepare_test_database() -> Generator[None]:
     with engine.begin() as connection:
         if engine.dialect.name != "sqlite":
             connection.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+        # 已移除的笔记/分类表不在当前 metadata 中，需要单独清理
+        connection.execute(text("DROP TABLE IF EXISTS `notes`"))
+        connection.execute(text("DROP TABLE IF EXISTS `categories`"))
         for table in reversed(Base.metadata.sorted_tables):
             connection.execute(text(f"DROP TABLE IF EXISTS `{table.name}`"))
         connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
@@ -154,6 +160,21 @@ def reset_transient_state() -> Generator[None]:
         db.execute(delete(VerificationCode))
         db.execute(delete(EmailRegistrationBlock))
         db.execute(delete(RateLimitEvent))
+        db.commit()
+
+
+@pytest.fixture(autouse=True)
+def reset_new_content() -> Generator[None]:
+    with SessionLocal() as db:
+        db.execute(delete(MomentComment))
+        db.execute(delete(Moment))
+        db.execute(delete(Message))
+        db.commit()
+    yield
+    with SessionLocal() as db:
+        db.execute(delete(MomentComment))
+        db.execute(delete(Moment))
+        db.execute(delete(Message))
         db.commit()
 
 

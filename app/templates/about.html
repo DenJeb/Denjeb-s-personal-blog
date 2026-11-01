@@ -6,25 +6,26 @@
 
 {% block title %}关于 · {{ app_name }}{% endblock %}
 {% block description %}关于 DenJeb 和本站 - {{ app_name }}{% endblock %}
+{% block main_class %}page-medium{% endblock %}
 
 {% block content %}
   <hgroup>
     <h1>关于</h1>
-    <p>记录学习与开发的地方。</p>
   </hgroup>
 
   <article>
     <h2>关于我</h2>
-    <p>我是 DenJeb，正在学习 C++、Python 和后端开发。这里记录我的学习笔记和开发过程。</p>
+    <ul>
+      <li><strong>昵称：</strong>Denjeb</li>
+      <li><strong>身份：</strong>大学生</li>
+      <li><strong>专业：</strong>计算机科学与技术</li>
+      <li><strong>爱好：</strong>游戏、摄影、音乐、电影、篮球、羽毛球、乒乓球、旅游、记录</li>
+      <li><strong>GitHub：</strong><a href="https://github.com/Denjeb" target="_blank" rel="noopener">https://github.com/Denjeb</a></li>
+      <li><strong>邮箱：</strong><a href="mailto:denjeb@qq.com">denjeb@qq.com</a></li>
+    </ul>
 
     <h2>关于本站</h2>
     <p>本站使用 FastAPI + Jinja2 服务端渲染，数据存储使用 MySQL，数据库迁移由 Alembic 管理。</p>
     <p>内容持续更新中。</p>
-
-    <h2>链接</h2>
-    <ul>
-      <li><a href="https://github.com/DenJeb" target="_blank" rel="noopener">GitHub 主页</a></li>
-      <li><a href="{{ url_for('rss_feed') }}">RSS 订阅</a></li>
-    </ul>
   </article>
 {% endblock %}

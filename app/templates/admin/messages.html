@@ -1,0 +1,45 @@
+{% extends "admin/base.html" %}
+
+<!--
+========== 后台留言管理 ==========
+-->
+
+{% block title %}留言管理 · {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>留言管理</h1>
+    <p>共 {{ total }} 条</p>
+  </hgroup>
+
+  {% if deleted %}
+    <p><mark>留言已删除。</mark></p>
+  {% endif %}
+
+  <table role="grid">
+    <thead>
+      <tr>
+        <th>昵称</th>
+        <th>内容</th>
+        <th>时间</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for message in messages %}
+        <tr>
+          <td>{{ message.author_name }}</td>
+          <td title="{{ message.content }}">{{ message.content[:80] }}{% if message.content | length > 80 %}…{% endif %}</td>
+          <td>{{ message.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>
+            <a href="{{ url_for('message_delete_confirm', message_id=message.id) }}{% if page > 1 %}?page={{ page }}{% endif %}">删除</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4">还没有留言。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "_pagination.html" %}
+{% endblock %}

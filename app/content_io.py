@@ -12,30 +12,35 @@ from sqlalchemy import delete, select
 from app.config import PROJECT_DIR
 from app.db import SessionLocal
 from app.markdown import render_markdown
-from app.models import BlogPost, Category, Comment, Note
+from app.models import (
+    BlogPost,
+    Comment,
+    Message,
+    Moment,
+    MomentComment,
+    User,
+)
 from app.routers.admin.common import delete_orphan_uploads
 
 DEFAULT_PATH = PROJECT_DIR / "content" / "content-backup.json"
 
 
+def _parse_created_at(value: str | None) -> datetime:
+    return datetime.fromisoformat(value) if value else datetime.now(UTC)
+
+
 def export_content(path: Path = DEFAULT_PATH) -> None:
     with SessionLocal() as db:
-        categories = db.scalars(select(Category).order_by(Category.id)).all()
         posts = db.scalars(select(BlogPost).order_by(BlogPost.id)).all()
-        notes = db.scalars(select(Note).order_by(Note.id)).all()
         comments = db.scalars(select(Comment).order_by(Comment.id)).all()
-        category_slugs = {category.id: category.slug for category in categories}
+        moments = db.scalars(select(Moment).order_by(Moment.id)).all()
+        moment_comments = db.scalars(
+            select(MomentComment).order_by(MomentComment.id)
+        ).all()
+        messages = db.scalars(select(Message).order_by(Message.id)).all()
 
         data = {
             "exported_at": datetime.now(UTC).isoformat(),
-            "categories": [
-                {
-                    "id": category.id,
-                    "slug": category.slug,
-                    "name": category.name,
-                }
-                for category in categories
-            ],
             "posts": [
                 {
                     "id": post.id,
@@ -48,28 +53,47 @@ def export_content(path: Path = DEFAULT_PATH) -> None:
                 }
                 for post in posts
             ],
-            "notes": [
-                {
-                    "id": note.id,
-                    "title": note.title,
-                    "summary": note.summary,
-                    "content": note.content,
-                    "published_at": note.published_at.isoformat(),
-                    "tags": note.tags or [],
-                    "category_slug": category_slugs.get(note.category_id),
-                }
-                for note in notes
-            ],
             "comments": [
                 {
                     "id": comment.id,
                     "post_id": comment.post_id,
+                    "user_id": comment.user_id,
                     "author_name": comment.author_name,
                     "content": comment.content,
                     "is_approved": comment.is_approved,
                     "created_at": comment.created_at.isoformat(),
                 }
                 for comment in comments
+            ],
+            "moments": [
+                {
+                    "id": moment.id,
+                    "content": moment.content,
+                    "created_at": moment.created_at.isoformat(),
+                }
+                for moment in moments
+            ],
+            "moment_comments": [
+                {
+                    "id": comment.id,
+                    "moment_id": comment.moment_id,
+                    "user_id": comment.user_id,
+                    "author_name": comment.author_name,
+                    "content": comment.content,
+                    "is_approved": comment.is_approved,
+                    "created_at": comment.created_at.isoformat(),
+                }
+                for comment in moment_comments
+            ],
+            "messages": [
+                {
+                    "id": message.id,
+                    "user_id": message.user_id,
+                    "author_name": message.author_name,
+                    "content": message.content,
+                    "created_at": message.created_at.isoformat(),
+                }
+                for message in messages
             ],
         }
 
@@ -79,9 +103,11 @@ def export_content(path: Path = DEFAULT_PATH) -> None:
         encoding="utf-8",
     )
     print(
-        f"已导出 {len(data['categories'])} 个分类、"
-        f"{len(data['posts'])} 篇文章、{len(data['notes'])} 篇笔记、"
-        f"{len(data['comments'])} 条评论 -> {path}"
+        f"已导出 {len(data['posts'])} 篇文章、"
+        f"{len(data['comments'])} 条评论、"
+        f"{len(data['moments'])} 条动态、"
+        f"{len(data['moment_comments'])} 条动态评论、"
+        f"{len(data['messages'])} 条留言 -> {path}"
     )
 
 
@@ -99,22 +125,14 @@ def import_content(
 
     with SessionLocal() as db:
         try:
+            db.execute(delete(MomentComment))
+            db.execute(delete(Moment))
+            db.execute(delete(Message))
             db.execute(delete(Comment))
-            db.execute(delete(Note))
             db.execute(delete(BlogPost))
-            db.execute(delete(Category))
             db.flush()
 
-            categories: dict[str, Category] = {}
-            for item in data.get("categories", []):
-                category = Category(
-                    id=item["id"],
-                    slug=item["slug"],
-                    name=item["name"],
-                )
-                db.add(category)
-                categories[item["slug"]] = category
-            db.flush()
+            existing_user_ids = set(db.scalars(select(User.id)).all())
 
             for item in data.get("posts", []):
                 content = item["content"]
@@ -131,43 +149,54 @@ def import_content(
                     )
                 )
 
-            for item in data.get("notes", []):
-                category = categories.get(item["category_slug"])
-                if category is None:
-                    raise ValueError(
-                        f"笔记《{item['title']}》的分类不存在："
-                        f"{item['category_slug']}"
-                    )
-                content = item["content"]
+            for item in data.get("moments", []):
                 db.add(
-                    Note(
+                    Moment(
                         id=item["id"],
-                        title=item["title"],
-                        summary=item.get("summary", ""),
-                        content=content,
-                        content_html=render_markdown(content),
-                        published_at=date.fromisoformat(item["published_at"]),
-                        tags=item.get("tags", []),
-                        category_id=category.id,
+                        content=item["content"],
+                        created_at=_parse_created_at(item.get("created_at")),
                     )
                 )
 
             db.flush()
 
             for item in data.get("comments", []):
-                created_at = item.get("created_at")
+                user_id = item.get("user_id")
                 db.add(
                     Comment(
                         id=item["id"],
                         post_id=item["post_id"],
+                        user_id=(user_id if user_id in existing_user_ids else None),
                         author_name=item["author_name"],
                         content=item["content"],
                         is_approved=item.get("is_approved", False),
-                        created_at=(
-                            datetime.fromisoformat(created_at)
-                            if created_at
-                            else datetime.now(UTC)
-                        ),
+                        created_at=_parse_created_at(item.get("created_at")),
+                    )
+                )
+
+            for item in data.get("moment_comments", []):
+                user_id = item.get("user_id")
+                db.add(
+                    MomentComment(
+                        id=item["id"],
+                        moment_id=item["moment_id"],
+                        user_id=(user_id if user_id in existing_user_ids else None),
+                        author_name=item["author_name"],
+                        content=item["content"],
+                        is_approved=item.get("is_approved", False),
+                        created_at=_parse_created_at(item.get("created_at")),
+                    )
+                )
+
+            for item in data.get("messages", []):
+                user_id = item.get("user_id")
+                db.add(
+                    Message(
+                        id=item["id"],
+                        user_id=(user_id if user_id in existing_user_ids else None),
+                        author_name=item["author_name"],
+                        content=item["content"],
+                        created_at=_parse_created_at(item.get("created_at")),
                     )
                 )
 
@@ -181,10 +210,11 @@ def import_content(
             delete_orphan_uploads(db)
 
     print(
-        f"已恢复 {len(data.get('categories', []))} 个分类、"
-        f"{len(data.get('posts', []))} 篇文章、"
-        f"{len(data.get('notes', []))} 篇笔记、"
-        f"{len(data.get('comments', []))} 条评论 <- {path}"
+        f"已恢复 {len(data.get('posts', []))} 篇文章、"
+        f"{len(data.get('comments', []))} 条评论、"
+        f"{len(data.get('moments', []))} 条动态、"
+        f"{len(data.get('moment_comments', []))} 条动态评论、"
+        f"{len(data.get('messages', []))} 条留言 <- {path}"
     )
 
 
@@ -200,12 +230,12 @@ def main() -> None:
     import_parser.add_argument(
         "--replace",
         action="store_true",
-        help="确认覆盖现有文章、笔记、评论和分类",
+        help="确认覆盖现有文章、动态、评论和留言",
     )
     import_parser.add_argument(
         "--clean-uploads",
         action="store_true",
-        help="导入成功后删除没有被文章或笔记引用的图片",
+        help="导入成功后删除没有被文章引用的图片",
     )
 
     args = parser.parse_args()

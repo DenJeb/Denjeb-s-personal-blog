@@ -149,15 +149,16 @@ def main() -> None:
             existing = set(inspect(rehearsal_engine).get_table_names())
             for table in (
                 "alembic_version",
-                "categories",
                 "blog_posts",
-                "notes",
                 "comments",
                 "users",
                 "admin_users",
                 "verification_codes",
                 "email_registration_blocks",
                 "rate_limit_events",
+                "moments",
+                "moment_comments",
+                "messages",
             ):
                 count = _count_rows(rehearsal_engine, table, existing)
                 value = "缺失" if count is None else f"{count} 行"

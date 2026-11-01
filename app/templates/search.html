@@ -7,18 +7,22 @@
 {% block title %}搜索 · {{ app_name }}{% endblock %}
 {% block description %}搜索文章 - {{ app_name }}{% endblock %}
 
+{% block main_class %}page-medium{% endblock %}
+
 {% block content %}
   <hgroup>
     <h1>搜索</h1>
     <p>搜索标题、摘要和正文。</p>
   </hgroup>
 
-  <form method="get" action="{{ url_for('search_page') }}">
-    <fieldset role="group">
-      <input type="search" name="q" value="{{ q }}" placeholder="输入关键词" aria-label="搜索关键词" autofocus>
-      <button type="submit">搜索</button>
-    </fieldset>
-  </form>
+  <search class="search-landmark">
+    <form method="get" action="{{ url_for('search_page') }}" class="search-form">
+      <div class="search-bar">
+        <input type="search" name="q" value="{{ q }}" placeholder="输入关键词" aria-label="搜索关键词" autofocus>
+        <button type="submit">搜索</button>
+      </div>
+    </form>
+  </search>
 
   {% if q %}
     <h2>“{{ q }}” 的搜索结果</h2>

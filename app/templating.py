@@ -37,6 +37,7 @@ def _canonical_url(request: Request) -> str:
         (key, value)
         for key, value in parse_qsl(parts.query, keep_blank_values=True)
         if key in CANONICAL_QUERY_KEYS
+        and not (key in {"page", "comment_page"} and value == "1")
     ]
     return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), ""))
 
@@ -48,7 +49,8 @@ def _page_url(request: Request, page: int, param: str = "page") -> str:
         for key, value in parse_qsl(parts.query, keep_blank_values=True)
         if key != param
     ]
-    query.append((param, str(page)))
+    if page > 1:
+        query.append((param, str(page)))
     return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), ""))
 
 

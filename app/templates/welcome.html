@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+<!--
+========== 首页欢迎：终端风格 ==========
+-->
+
+{% block title %}{{ app_name }}{% endblock %}
+{% block description %}欢迎来到 {{ app_name }}，这里记录学习、开发与生活。{% endblock %}
+{% block main_class %}page-wide{% endblock %}
+
+{% block content %}
+  <section class="terminal-welcome">
+    <h1 class="visually-hidden">{{ app_name }}</h1>
+
+    <div class="terminal-window">
+      <div class="terminal-bar" aria-hidden="true">
+        <span>denjeb@blog</span>
+        <span>~/welcome</span>
+      </div>
+      <pre class="terminal-body"><code><span class="terminal-prompt">$</span> cat welcome.txt
+欢迎来到我的个人博客
+
+<span class="terminal-prompt">$</span> whoami
+<span class="terminal-name">Denjeb</span>
+<span class="terminal-muted">大学生 / 计算机科学与技术</span>
+
+<span class="terminal-prompt">$</span> interests
+游戏 · 摄影 · 音乐 · 电影 · 篮球 · 羽毛球 · 乒乓球 · 旅游 · 记录
+
+<span class="terminal-prompt">$</span> <a class="terminal-command" href="{{ url_for('posts_page') }}">open posts</a><span class="terminal-cursor" aria-hidden="true"></span></code></pre>
+    </div>
+
+    <div class="terminal-actions">
+      <a href="{{ url_for('posts_page') }}" role="button">阅读文章</a>
+      <a href="{{ url_for('about_page') }}" role="button" class="secondary outline">关于我</a>
+      <a href="https://github.com/DenJeb" target="_blank" rel="noopener" role="button" class="secondary outline">GitHub</a>
+    </div>
+  </section>
+{% endblock %}

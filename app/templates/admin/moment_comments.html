@@ -1,0 +1,67 @@
+{% extends "admin/base.html" %}
+
+<!--
+========== 后台动态评论管理 ==========
+-->
+
+{% block title %}动态评论管理 · {{ app_name }}{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>动态评论管理</h1>
+    <p>共 {{ total }} 条</p>
+  </hgroup>
+
+  {% if saved %}
+    <p><mark>操作成功。</mark></p>
+  {% endif %}
+
+  {% if deleted %}
+    <p><mark>评论已删除。</mark></p>
+  {% endif %}
+
+  <table role="grid">
+    <thead>
+      <tr>
+        <th>动态</th>
+        <th>昵称</th>
+        <th>内容</th>
+        <th>时间</th>
+        <th>状态</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for comment in comments %}
+        {% set public_page = moment_pages.get(comment.moment_id, 1) %}
+        <tr>
+          <td>
+            <a href="{{ url_for('moments_page') }}{% if public_page > 1 %}?page={{ public_page }}{% endif %}#moment-{{ comment.moment_id }}" target="_blank" rel="noopener">动态 #{{ comment.moment_id }}</a>
+          </td>
+          <td>{{ comment.author_name }}</td>
+          <td title="{{ comment.content }}">{{ comment.content[:80] }}{% if comment.content | length > 80 %}…{% endif %}</td>
+          <td>{{ comment.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+          <td>
+            {% if comment.is_approved %}
+              <ins>已通过</ins>
+            {% else %}
+              <mark>待审核</mark>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('moment_comment_approve', comment_id=comment.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+              <input type="hidden" name="page" value="{{ page }}">
+              <button type="submit" class="secondary outline">{{ "取消审核" if comment.is_approved else "通过" }}</button>
+            </form>
+            <a href="{{ url_for('moment_comment_delete_confirm', comment_id=comment.id) }}{% if page > 1 %}?page={{ page }}{% endif %}">删除</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6">还没有动态评论。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "_pagination.html" %}
+{% endblock %}

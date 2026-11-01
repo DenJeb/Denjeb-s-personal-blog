@@ -80,3 +80,37 @@ def test_search_pagination(client, monkeypatch):
         assert "page=2" in last.headers["location"]
     finally:
         _cleanup_posts()
+
+
+def test_posts_pagination(client, monkeypatch):
+    _cleanup_posts()
+    monkeypatch.setattr(public, "POSTS_PER_PAGE", 1)
+    try:
+        with SessionLocal() as db:
+            for index in range(2):
+                db.add(
+                    BlogPost(
+                        title=f"__pytest_page_posts_{index}",
+                        summary="",
+                        content="content",
+                        published_at=date(2020, 5, index + 1),
+                        tags=[],
+                    )
+                )
+            db.commit()
+
+        first = client.get("/posts")
+        assert "第 1 /" in first.text
+
+        second = client.get("/posts?page=2")
+        assert "第 2 /" in second.text
+
+        last = client.get("/posts?page=999", follow_redirects=False)
+        assert last.status_code == 303
+        assert "/posts?page=" in last.headers["location"]
+
+        old_home = client.get("/?page=2", follow_redirects=False)
+        assert old_home.status_code == 303
+        assert "/posts?page=2" in old_home.headers["location"]
+    finally:
+        _cleanup_posts()

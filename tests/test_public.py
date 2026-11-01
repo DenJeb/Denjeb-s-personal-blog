@@ -6,6 +6,7 @@ import json
 import re
 import xml.etree.ElementTree as ET
 from datetime import date
+from urllib.parse import quote
 
 from fastapi.testclient import TestClient
 from sqlalchemy import delete
@@ -18,12 +19,14 @@ from app.models import BlogPost
 def test_public_pages(client):
     for path in (
         "/",
+        "/posts",
         "/posts/1",
         "/tags",
         "/archive",
         "/search?q=FastAPI",
         "/about",
-        "/notes",
+        "/moments",
+        "/guestbook",
     ):
         response = client.get(path)
         assert response.status_code == 200, path
@@ -60,7 +63,7 @@ def test_404_page(client):
 
 
 def test_422_page(client):
-    response = client.get("/?page=0")
+    response = client.get("/posts?page=0")
     assert response.status_code == 422
     assert "请求参数不正确" in response.text
     assert response.headers["content-type"].startswith("text/html")
@@ -144,6 +147,27 @@ def test_search_wildcards_are_literal(client):
     assert "没有找到相关文章" in response.text
 
 
+def test_tags_sorted_by_count_then_initial(client):
+    text = client.get("/tags").text
+
+    def position(tag: str) -> int:
+        return text.index(f"/tags?tag={quote(tag, safe='')}")
+
+    assert position("博客") < position("FastAPI") < position("学习")
+
+
+def test_post_card_tags_sorted_by_initial(client):
+    text = client.get("/posts").text
+    card = re.search(r"<article>.*?</article>", text, re.DOTALL)
+    assert card is not None
+    card_text = card.group(0)
+
+    def position(tag: str) -> int:
+        return card_text.index(f"/tags?tag={quote(tag, safe='')}")
+
+    assert position("博客") < position("FastAPI")
+
+
 def test_tags_with_special_characters(client):
     with SessionLocal() as db:
         post = BlogPost(
@@ -159,7 +183,7 @@ def test_tags_with_special_characters(client):
         post_id = post.id
 
     try:
-        home = client.get("/")
+        home = client.get("/posts")
         assert home.status_code == 200
         assert "tag=C%2FC%2B%2B" in home.text
 

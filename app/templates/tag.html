@@ -7,11 +7,16 @@
 {% block title %}标签：{{ tag }} · {{ app_name }}{% endblock %}
 {% block description %}标签 {{ tag }} 下的文章 - {{ app_name }}{% endblock %}
 
+{% block main_class %}page-medium{% endblock %}
+
 {% block content %}
   <hgroup>
     <h1>标签：{{ tag }}</h1>
-    <p>共 {{ total }} 篇文章</p>
   </hgroup>
+  <div class="page-meta">
+    <p class="page-tagline">这个标签下的所有文章。</p>
+    <p class="page-stat">共 {{ total }} 篇文章</p>
+  </div>
 
   {% for post in posts %}
     {% include "_post_card.html" %}

@@ -9,11 +9,10 @@ from pathlib import Path
 from sqlalchemy import delete, select
 
 from app.db import SessionLocal
-from app.models import BlogPost, Category, Note
+from app.models import BlogPost
 from tests.utils import csrf_token
 
 POST_TITLE = "__pytest_post__"
-NOTE_TITLE = "__pytest_note__"
 PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nQAAAABJRU5ErkJggg=="
 )
@@ -23,7 +22,6 @@ UPLOAD_DIR = Path("app/static/uploads")
 def _cleanup_content() -> None:
     with SessionLocal() as db:
         db.execute(delete(BlogPost).where(BlogPost.title.like(POST_TITLE + "%")))
-        db.execute(delete(Note).where(Note.title.like(NOTE_TITLE + "%")))
         db.commit()
 
 
@@ -31,13 +29,13 @@ def test_admin_pages(admin_client):
     for path in (
         "/admin/",
         "/admin/posts",
-        "/admin/notes",
         "/admin/comments",
-        "/admin/categories",
+        "/admin/moments",
+        "/admin/moment-comments",
+        "/admin/messages",
         "/admin/uploads",
         "/admin/users",
         "/admin/posts/1/edit",
-        "/admin/notes/1/edit",
     ):
         assert admin_client.get(path).status_code == 200, path
 
@@ -133,70 +131,6 @@ def test_post_crud_and_image_cleanup(admin_client):
         _cleanup_content()
         if created_path and created_path.exists():
             created_path.unlink()
-
-
-def test_note_crud(admin_client):
-    _cleanup_content()
-    try:
-        with SessionLocal() as db:
-            category_id = db.scalar(select(Category.id).order_by(Category.id))
-
-        token = csrf_token(admin_client.get("/admin/notes/new").text)
-        response = admin_client.post(
-            "/admin/notes/new",
-            data={
-                "csrf_token": token,
-                "title": NOTE_TITLE,
-                "summary": "pytest",
-                "content": "## note",
-                "published_at": "2026-10-30",
-                "tags": "pytest",
-                "category_id": str(category_id),
-            },
-            follow_redirects=False,
-        )
-        assert response.status_code == 303
-
-        with SessionLocal() as db:
-            note = db.scalar(select(Note).where(Note.title == NOTE_TITLE))
-            assert note is not None
-            note_id = note.id
-            assert note.content_html is not None
-            assert "note" in note.content_html
-
-        token = csrf_token(admin_client.get(f"/admin/notes/{note_id}/edit").text)
-        response = admin_client.post(
-            f"/admin/notes/{note_id}/edit",
-            data={
-                "csrf_token": token,
-                "title": NOTE_TITLE,
-                "summary": "pytest",
-                "content": "## note edited",
-                "published_at": "2026-10-31",
-                "tags": "pytest",
-                "category_id": str(category_id),
-            },
-            follow_redirects=False,
-        )
-        assert response.status_code == 303
-
-        with SessionLocal() as db:
-            note = db.get(Note, note_id)
-            assert note is not None
-            assert note.content_html is not None
-            assert "note edited" in note.content_html
-
-        token = csrf_token(admin_client.get(f"/admin/notes/{note_id}/edit").text)
-        response = admin_client.post(
-            f"/admin/notes/{note_id}/delete",
-            data={"csrf_token": token},
-            follow_redirects=False,
-        )
-        assert response.status_code == 303
-        with SessionLocal() as db:
-            assert db.get(Note, note_id) is None
-    finally:
-        _cleanup_content()
 
 
 def test_edit_without_csrf_rejected(admin_client):
@@ -318,31 +252,5 @@ def test_post_title_and_summary_length_validation(admin_client):
         )
         assert response.status_code == 400
         assert "摘要" in response.text
-    finally:
-        _cleanup_content()
-
-
-def test_note_title_length_validation(admin_client):
-    _cleanup_content()
-    long_title = "z" * 201
-    try:
-        with SessionLocal() as db:
-            category_id = db.scalar(select(Category.id).order_by(Category.id))
-        token = csrf_token(admin_client.get("/admin/notes/new").text)
-        response = admin_client.post(
-            "/admin/notes/new",
-            data={
-                "csrf_token": token,
-                "title": long_title,
-                "summary": "pytest",
-                "content": "正文",
-                "published_at": "2026-10-30",
-                "tags": "",
-                "category_id": str(category_id),
-            },
-            follow_redirects=False,
-        )
-        assert response.status_code == 400
-        assert "标题" in response.text
     finally:
         _cleanup_content()

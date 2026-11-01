@@ -39,7 +39,7 @@ def _create_post(title: str, published_at: date, is_published: bool) -> int:
 
 
 def _assert_hidden(client, admin_client, title: str, post_id: int) -> None:
-    assert title not in client.get("/").text
+    assert title not in client.get("/posts").text
     assert title not in client.get("/archive").text
     assert title not in client.get("/tags", params={"tag": TAG}).text
     search = client.get("/search", params={"q": title})

@@ -7,17 +7,22 @@
 {% block title %}标签 · {{ app_name }}{% endblock %}
 {% block description %}全部标签 - {{ app_name }}{% endblock %}
 
+{% block main_class %}page-medium{% endblock %}
+
 {% block content %}
   <hgroup>
     <h1>标签</h1>
-    <p>共 {{ tags | length }} 个标签</p>
   </hgroup>
+  <div class="page-meta">
+    <p class="page-tagline">按标签找找感兴趣的内容。</p>
+    <p class="page-stat">共 {{ tags | length }} 个标签</p>
+  </div>
 
-  <p>
+  <div class="tag-cloud">
     {% for tag, count in tags %}
-      <a href="{{ tag_url(tag) }}">{{ tag }} ({{ count }})</a>{% if not loop.last %} · {% endif %}
+      <a class="tag-pill" href="{{ tag_url(tag) }}">{{ tag }} <span class="tag-count">{{ count }}</span></a>
     {% else %}
-      还没有标签。
+      <p>还没有标签。</p>
     {% endfor %}
-  </p>
+  </div>
 {% endblock %}

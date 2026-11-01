@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
   {% include "_theme_head.html" %}
-  <meta name="description" content="{% block description %}{{ app_name }} - 记录学习与开发的地方{% endblock %}">
+  <meta name="description" content="{% block description %}{{ app_name }} - 个人博客{% endblock %}">
   <meta name="author" content="DenJeb">
   <link rel="canonical" href="{{ canonical_url(request) }}">
   <meta property="og:site_name" content="{{ app_name }}">
@@ -26,42 +26,52 @@
   <link rel="alternate" type="application/rss+xml" title="{{ app_name }}" href="{{ url_for('rss_feed') }}">
   {% block head_extra %}{% endblock %}
 </head>
-<body>
+<body class="public">
   <header class="container">
-    <nav>
-      <ul>
-        <li><strong><a href="{{ url_for('index') }}">{{ app_name }}</a></strong></li>
-      </ul>
-      <ul>
-        <li><a href="{{ url_for('index') }}">首页</a></li>
-        <li><a href="{{ url_for('tags_page') }}">标签</a></li>
-        <li><a href="{{ url_for('archive_page') }}">归档</a></li>
-        <li><a href="{{ url_for('search_page') }}">搜索</a></li>
-        <li><a href="{{ url_for('about_page') }}">关于</a></li>
-        {% if request.state.user %}
-          <li><span>{{ request.state.user.username }}</span></li>
-          <li><a href="{{ url_for('user_delete_page') }}">注销账号</a></li>
-          <li>
-            <form method="post" action="{{ url_for('user_logout') }}">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-              <button type="submit" class="secondary outline">退出</button>
-            </form>
-          </li>
-        {% else %}
-          <li><a href="{{ url_for('user_login_page') }}">登录</a></li>
-          <li><a href="{{ url_for('user_register_page') }}">注册</a></li>
-        {% endif %}
-        {% include "_theme_button.html" %}
-      </ul>
-    </nav>
+    <div class="page-content">
+      <nav>
+        <ul>
+          <li><strong><a class="site-brand" href="{{ url_for('index') }}">{{ app_name }}</a></strong></li>
+        </ul>
+        <ul>
+          <li><a href="{{ url_for('index') }}">首页</a></li>
+          <li><a href="{{ url_for('posts_page') }}">文章</a></li>
+          <li><a href="{{ url_for('moments_page') }}">动态</a></li>
+          <li><a href="{{ url_for('guestbook_page') }}">留言</a></li>
+          <li><a href="{{ url_for('tags_page') }}">标签</a></li>
+          <li><a href="{{ url_for('archive_page') }}">归档</a></li>
+          <li><a href="{{ url_for('search_page') }}">搜索</a></li>
+          <li><a href="{{ url_for('about_page') }}">关于</a></li>
+          {% if request.state.user %}
+            <li><span>{{ request.state.user.username }}</span></li>
+            <li><a href="{{ url_for('user_delete_page') }}">注销账号</a></li>
+            <li>
+              <form method="post" action="{{ url_for('user_logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <button type="submit" class="secondary outline">退出</button>
+              </form>
+            </li>
+          {% else %}
+            <li><a href="{{ url_for('user_login_page') }}">登录</a></li>
+            <li><a href="{{ url_for('user_register_page') }}">注册</a></li>
+          {% endif %}
+          <li><a href="{{ url_for('login_page') }}">后台</a></li>
+          {% include "_theme_button.html" %}
+        </ul>
+      </nav>
+    </div>
   </header>
 
-  <main class="container">
-    {% block content %}{% endblock %}
+  <main class="container {% block main_class %}page-narrow{% endblock %}">
+    <div class="page-content">
+      {% block content %}{% endblock %}
+    </div>
   </main>
 
   <footer class="container">
-    <small>© 2026 {{ app_name }}</small>
+    <div class="page-content">
+      <small>© 2026 {{ app_name }}</small>
+    </div>
   </footer>
   <script src="{{ url_for('static', path='/js/theme.js') }}"></script>
 </body>

@@ -53,7 +53,7 @@ def record_event(db: Session, bucket: str) -> None:
             < _now() - timedelta(seconds=RATE_LIMIT_RETENTION_SECONDS)
         )
     )
-    db.add(RateLimitEvent(bucket=bucket))
+    db.add(RateLimitEvent(bucket=bucket, created_at=_now()))
     db.commit()
 
 

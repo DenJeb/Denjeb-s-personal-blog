@@ -7,20 +7,25 @@
 {% block title %}归档 · {{ app_name }}{% endblock %}
 {% block description %}文章归档 - {{ app_name }}{% endblock %}
 
+{% block main_class %}page-medium{% endblock %}
+
 {% block content %}
   <hgroup>
     <h1>归档</h1>
-    <p>共 {{ total }} 篇文章</p>
   </hgroup>
+  <div class="page-meta">
+    <p class="page-tagline">按时间翻翻以前写过的东西。</p>
+    <p class="page-stat">共 {{ total }} 篇文章</p>
+  </div>
 
   {% for year, months in archive.items() %}
     <section>
       <h2>{{ year }} 年</h2>
       {% for month, posts in months.items() %}
         <h3>{{ "%02d" | format(month) }} 月</h3>
-        <ul>
+        <ul class="archive-list" role="list">
           {% for post in posts %}
-            <li>
+            <li class="archive-item">
               <a href="{{ url_for('post_detail', post_id=post.id) }}">{{ post.title }}</a>
               <small>{{ post.published_at }}</small>
             </li>

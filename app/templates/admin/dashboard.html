@@ -20,15 +20,27 @@
     </article>
 
     <article>
-      <header><strong>学习笔记</strong></header>
-      <p>{{ note_count }} 篇</p>
-      <a href="{{ url_for('admin_notes') }}" role="button">管理笔记</a>
+      <header><strong>动态</strong></header>
+      <p>{{ moment_count }} 条</p>
+      <a href="{{ url_for('admin_moments') }}" role="button">管理动态</a>
+    </article>
+
+    <article>
+      <header><strong>留言</strong></header>
+      <p>{{ message_count }} 条</p>
+      <a href="{{ url_for('admin_messages') }}" role="button">管理留言</a>
     </article>
 
     <article>
       <header><strong>评论</strong></header>
       <p>{{ comment_count }} 条，待审核 {{ pending_count }} 条</p>
       <a href="{{ url_for('admin_comments') }}" role="button">管理评论</a>
+    </article>
+
+    <article>
+      <header><strong>动态评论</strong></header>
+      <p>{{ moment_comment_count }} 条，待审核 {{ moment_pending_count }} 条</p>
+      <a href="{{ url_for('admin_moment_comments') }}" role="button">管理动态评论</a>
     </article>
 
     <article>

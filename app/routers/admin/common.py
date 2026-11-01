@@ -8,11 +8,12 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import UploadFile
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.constants import MOMENTS_PER_PAGE
 from app.markdown import render_markdown
-from app.models import BlogPost, Note
+from app.models import BlogPost, Moment
 
 APP_DIR = Path(__file__).resolve().parent.parent.parent
 UPLOAD_DIR = APP_DIR / "static" / "uploads"
@@ -26,6 +27,20 @@ def page_slice(page: int, total: int) -> tuple[int, int]:
     total_pages = max((total + PAGE_SIZE - 1) // PAGE_SIZE, 1)
     page = min(max(page, 1), total_pages)
     return page, total_pages
+
+
+def moment_page(db: Session, moment: Moment) -> int:
+    """动态在公开时间线里的页码。"""
+    ranked = select(
+        Moment.id.label("id"),
+        func.row_number()
+        .over(order_by=(Moment.created_at.desc(), Moment.id.desc()))
+        .label("rn"),
+    ).subquery()
+    position = db.scalar(select(ranked.c.rn).where(ranked.c.id == moment.id))
+    if position is None:
+        return 1
+    return (position - 1) // MOMENTS_PER_PAGE + 1
 
 
 _UPLOAD_URL_RE = re.compile(r"/static/uploads/[A-Za-z0-9._/-]+")
@@ -95,8 +110,6 @@ def all_referenced_upload_urls(db: Session) -> set[str]:
     urls = set()
     for post in db.scalars(select(BlogPost)).all():
         urls.update(upload_urls_in_text(post.content, post.content_html))
-    for note in db.scalars(select(Note)).all():
-        urls.update(upload_urls_in_text(note.content, note.content_html))
     return urls
 
 
@@ -143,17 +156,6 @@ def post_form_values(post: BlogPost) -> dict:
     }
 
 
-def note_form_values(note: Note) -> dict:
-    return {
-        "title": note.title,
-        "summary": note.summary,
-        "content": note.content,
-        "published_at": note.published_at.isoformat(),
-        "tags": ", ".join(note.tags or []),
-        "category_id": note.category_id,
-    }
-
-
 def validate_content_fields(
     title: str, summary: str, content: str, published_at: str
 ) -> tuple[str | None, date | None]:
@@ -192,21 +194,3 @@ def fill_post(
     post.published_at = published_date
     post.tags = parse_tags(tags)
     post.is_published = is_published
-
-
-def fill_note(
-    note: Note,
-    title: str,
-    summary: str,
-    content: str,
-    published_date: date,
-    tags: str,
-    category_id: int,
-) -> None:
-    note.title = title.strip()
-    note.summary = summary.strip()
-    note.content = content.strip()
-    note.content_html = render_markdown(note.content)
-    note.published_at = published_date
-    note.tags = parse_tags(tags)
-    note.category_id = category_id

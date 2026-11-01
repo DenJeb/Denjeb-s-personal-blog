@@ -10,7 +10,7 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
-    app_name: str = "Denjeb的个人博客"
+    app_name: str = "Denjeb 的个人博客"
     debug: bool = False
     session_https_only: bool = False
     trusted_hosts: str = "localhost,127.0.0.1,testserver"
