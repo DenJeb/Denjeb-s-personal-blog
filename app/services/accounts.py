@@ -22,10 +22,12 @@ EMAIL_BLOCK_HOURS = 24
 PURPOSE_REGISTER = "register"
 PURPOSE_LOGIN_CODE = "login_code"
 PURPOSE_RESET = "reset"
+PURPOSE_ADMIN_LOGIN = "admin_login"
 PURPOSE_LABELS = {
     PURPOSE_REGISTER: "注册验证码",
     PURPOSE_LOGIN_CODE: "登录验证码",
     PURPOSE_RESET: "密码重置验证码",
+    PURPOSE_ADMIN_LOGIN: "后台登录验证码",
 }
 
 

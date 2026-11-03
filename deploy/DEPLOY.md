@@ -37,7 +37,8 @@ cp .env.production.example .env
 - `SECRET_KEY` 用随机长串
 - `ADMIN_EMAIL` 填唯一管理员邮箱
 - `SITE_URL=https://yourdomain.com`，用于邮件通知里的链接
-- `EMAIL_ENABLED=true`；本地或测试环境设为 `false`，避免误发真实邮件
+- `EMAIL_ENABLED=true`；代码默认开启，测试环境会自动关闭
+- `ADMIN_LOGIN_CODE_ENABLED=true`；后台登录默认要求邮箱验证码
 - `DATABASE_URL` 填生产数据库
 - `SMTP_*` 填真实邮件配置
 - `MYSQLDUMP_PATH=/usr/bin/mysqldump`

@@ -233,7 +233,10 @@ def user_client(monkeypatch) -> Generator[TestClient]:
 
 
 @pytest.fixture
-def admin_client() -> Generator[TestClient]:
+def admin_client(monkeypatch) -> Generator[TestClient]:
+    monkeypatch.setattr(accounts_service, "generate_code", lambda: "123456")
+    monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
+
     with SessionLocal() as db:
         db.execute(delete(AdminUser).where(AdminUser.username == ADMIN_USERNAME))
         db.add(
@@ -259,6 +262,17 @@ def admin_client() -> Generator[TestClient]:
                 follow_redirects=False,
             )
             assert response.status_code == 303
+            assert response.headers["location"] == "/admin/login/code"
+
+            code_page = test_client.get("/admin/login/code")
+            token = csrf_token(code_page.text)
+            response = test_client.post(
+                "/admin/login/code",
+                data={"csrf_token": token, "code": "123456"},
+                follow_redirects=False,
+            )
+            assert response.status_code == 303
+            assert response.headers["location"] == "/admin/"
             yield test_client
     finally:
         with SessionLocal() as db:

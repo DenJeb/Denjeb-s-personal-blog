@@ -2,6 +2,7 @@
 ========== 后台登录与退出 ==========
 """
 
+import secrets
 from datetime import UTC, datetime
 
 import pyotp
@@ -17,6 +18,13 @@ from app.csrf import verify_csrf
 from app.deps import DbSession
 from app.models import AdminUser
 from app.rate_limit import clear_bucket, is_rate_limited, record_event
+from app.services.accounts import (
+    CODE_MAX_ATTEMPTS,
+    PURPOSE_ADMIN_LOGIN,
+    hash_code,
+    load_pending_code,
+    send_verification_code,
+)
 from app.templating import templates
 
 router = APIRouter()
@@ -28,6 +36,9 @@ PENDING_TTL_SECONDS = 300
 PENDING_ADMIN_ID = "pending_admin_id"
 PENDING_ADMIN_VERSION = "pending_admin_version"
 PENDING_ADMIN_AT = "pending_admin_at"
+PENDING_CODE = "pending_admin_login_code"
+CODE_SEND_WINDOW_SECONDS = 600
+CODE_SEND_MAX = 5
 
 
 def _client_ip(request: Request) -> str:
@@ -46,6 +57,53 @@ def _login_is_blocked(db: Session, ip: str) -> bool:
 
 def _record_login_failure(db: Session, ip: str) -> None:
     record_event(db, _login_bucket(ip))
+
+
+def _code_bucket(ip: str) -> str:
+    return f"admin_login_code:{ip}"
+
+
+def _code_is_blocked(db: Session, ip: str) -> bool:
+    return is_rate_limited(
+        db, _code_bucket(ip), CODE_SEND_WINDOW_SECONDS, CODE_SEND_MAX
+    )
+
+
+def _record_code_send(db: Session, ip: str) -> None:
+    record_event(db, _code_bucket(ip))
+
+
+def _clear_pending_code(request: Request) -> None:
+    request.session.pop(PENDING_CODE, None)
+
+
+def _pending_code(request: Request, db: Session):
+    pending = request.session.get(PENDING_CODE)
+    if not pending:
+        return None, None
+
+    row = load_pending_code(db, pending, PURPOSE_ADMIN_LOGIN)
+    if row is None:
+        _clear_pending_code(request)
+        return None, None
+    return pending, row
+
+
+def _finish_login(
+    request: Request, db: Session, admin: AdminUser, ip: str
+) -> RedirectResponse:
+    if admin.totp_secret:
+        request.session.pop("admin_user_id", None)
+        request.session.pop("admin_version", None)
+        request.session[PENDING_ADMIN_ID] = admin.id
+        request.session[PENDING_ADMIN_VERSION] = admin.session_version
+        request.session[PENDING_ADMIN_AT] = datetime.now(UTC).timestamp()
+        return RedirectResponse("/admin/login/totp", status_code=303)
+
+    clear_bucket(db, _login_bucket(ip))
+    request.session["admin_user_id"] = admin.id
+    request.session["admin_version"] = admin.session_version
+    return RedirectResponse("/admin/", status_code=303)
 
 
 def _clear_pending(request: Request) -> None:
@@ -88,6 +146,11 @@ def login_page(request: Request, db: DbSession):
             return RedirectResponse("/admin/", status_code=303)
         request.session.pop("admin_user_id", None)
         request.session.pop("admin_version", None)
+
+    if settings.admin_login_code_enabled:
+        pending, _ = _pending_code(request, db)
+        if pending is not None:
+            return RedirectResponse("/admin/login/code", status_code=303)
 
     if _pending_admin(request, db) is not None:
         return RedirectResponse("/admin/login/totp", status_code=303)
@@ -148,18 +211,169 @@ def login(
             status_code=400,
         )
 
-    if user.totp_secret:
+    if settings.admin_login_code_enabled:
+        if _code_is_blocked(db, ip):
+            return templates.TemplateResponse(
+                request=request,
+                name="admin/login.html",
+                context={
+                    "app_name": settings.app_name,
+                    "error": "验证码请求过于频繁，请稍后再试。",
+                    "username": username,
+                },
+                status_code=429,
+                headers={"Retry-After": str(CODE_SEND_WINDOW_SECONDS)},
+            )
+
+        email = (user.email or settings.admin_email_normalized).strip().lower()
+        row = send_verification_code(db, email, PURPOSE_ADMIN_LOGIN)
+        if row is None:
+            return templates.TemplateResponse(
+                request=request,
+                name="admin/login.html",
+                context={
+                    "app_name": settings.app_name,
+                    "error": "验证码发送失败，请检查 SMTP 配置或稍后再试。",
+                    "username": username,
+                },
+                status_code=503,
+            )
+
         request.session.pop("admin_user_id", None)
         request.session.pop("admin_version", None)
-        request.session[PENDING_ADMIN_ID] = user.id
-        request.session[PENDING_ADMIN_VERSION] = user.session_version
-        request.session[PENDING_ADMIN_AT] = datetime.now(UTC).timestamp()
-        return RedirectResponse("/admin/login/totp", status_code=303)
+        _clear_pending(request)
+        request.session[PENDING_CODE] = {
+            "code_id": row.id,
+            "email": email,
+            "admin_version": user.session_version,
+        }
+        _record_code_send(db, ip)
+        return RedirectResponse("/admin/login/code", status_code=303)
 
-    clear_bucket(db, _login_bucket(ip))
-    request.session["admin_user_id"] = user.id
-    request.session["admin_version"] = user.session_version
-    return RedirectResponse("/admin/", status_code=303)
+    return _finish_login(request, db, user, ip)
+
+
+@router.get("/login/code")
+def login_code_page(request: Request, db: DbSession):
+    if not settings.admin_login_code_enabled:
+        return RedirectResponse("/admin/login", status_code=303)
+
+    pending, _ = _pending_code(request, db)
+    if pending is None:
+        return RedirectResponse("/admin/login", status_code=303)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/login_code.html",
+        context={
+            "app_name": settings.app_name,
+            "email": pending.get("email"),
+            "sent": request.query_params.get("sent") == "1",
+        },
+    )
+
+
+@router.post("/login/code")
+def login_code_verify(
+    request: Request,
+    db: DbSession,
+    code: str = Form(...),
+    _csrf: None = Depends(verify_csrf),
+):
+    if not settings.admin_login_code_enabled:
+        return RedirectResponse("/admin/login", status_code=303)
+
+    pending, row = _pending_code(request, db)
+    if pending is None or row is None:
+        return RedirectResponse("/admin/login", status_code=303)
+
+    if not secrets.compare_digest(row.code_hash, hash_code(code.strip())):
+        row.attempts += 1
+        if row.attempts >= CODE_MAX_ATTEMPTS:
+            db.delete(row)
+            db.commit()
+            _clear_pending_code(request)
+            return RedirectResponse("/admin/login", status_code=303)
+
+        db.commit()
+        return templates.TemplateResponse(
+            request=request,
+            name="admin/login_code.html",
+            context={
+                "app_name": settings.app_name,
+                "email": pending.get("email"),
+                "error": "验证码不正确，请重试。",
+            },
+            status_code=400,
+        )
+
+    email = pending.get("email")
+    admin = db.scalar(select(AdminUser).where(AdminUser.email == email))
+    if (
+        admin is None
+        or (admin.email or "").lower() != settings.admin_email_normalized
+        or pending.get("admin_version") != admin.session_version
+    ):
+        db.delete(row)
+        db.commit()
+        _clear_pending_code(request)
+        return RedirectResponse("/admin/login", status_code=303)
+
+    db.delete(row)
+    db.commit()
+    _clear_pending_code(request)
+    ip = _client_ip(request)
+    clear_bucket(db, _code_bucket(ip))
+    return _finish_login(request, db, admin, ip)
+
+
+@router.post("/login/code/resend")
+def login_code_resend(
+    request: Request,
+    db: DbSession,
+    _csrf: None = Depends(verify_csrf),
+):
+    if not settings.admin_login_code_enabled:
+        return RedirectResponse("/admin/login", status_code=303)
+
+    pending, _ = _pending_code(request, db)
+    if pending is None:
+        return RedirectResponse("/admin/login", status_code=303)
+
+    ip = _client_ip(request)
+    if _code_is_blocked(db, ip):
+        return templates.TemplateResponse(
+            request=request,
+            name="admin/login_code.html",
+            context={
+                "app_name": settings.app_name,
+                "email": pending.get("email"),
+                "error": "验证码请求过于频繁，请稍后再试。",
+            },
+            status_code=429,
+            headers={"Retry-After": str(CODE_SEND_WINDOW_SECONDS)},
+        )
+
+    row = send_verification_code(db, pending.get("email") or "", PURPOSE_ADMIN_LOGIN)
+    if row is None:
+        return templates.TemplateResponse(
+            request=request,
+            name="admin/login_code.html",
+            context={
+                "app_name": settings.app_name,
+                "email": pending.get("email"),
+                "error": "验证码发送失败，请检查 SMTP 配置或稍后再试。",
+            },
+            status_code=503,
+        )
+
+    request.session[PENDING_CODE] = {
+        "code_id": row.id,
+        "email": pending.get("email"),
+        "admin_version": pending.get("admin_version"),
+    }
+    _record_code_send(db, ip)
+    return RedirectResponse("/admin/login/code?sent=1", status_code=303)
 
 
 @router.get("/login/totp")
@@ -213,6 +427,7 @@ def login_totp(
 
     clear_bucket(db, _login_bucket(ip))
     _clear_pending(request)
+    _clear_pending_code(request)
     request.session["admin_user_id"] = admin.id
     request.session["admin_version"] = admin.session_version
     return RedirectResponse("/admin/", status_code=303)
@@ -223,4 +438,5 @@ def logout(request: Request, _csrf: None = Depends(verify_csrf)):
     request.session.pop("admin_user_id", None)
     request.session.pop("admin_version", None)
     _clear_pending(request)
+    _clear_pending_code(request)
     return RedirectResponse("/admin/login", status_code=303)

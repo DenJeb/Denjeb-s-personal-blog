@@ -7,8 +7,19 @@ from email.message import EmailMessage
 
 from app.config import settings
 
+TEST_RECIPIENT_DOMAINS = ("@example.com", "@example.org", "@example.net")
+
+
+def _is_test_recipient(to: str) -> bool:
+    address = to.strip().lower()
+    return address.startswith("__pytest") or address.endswith(TEST_RECIPIENT_DOMAINS)
+
 
 def send_email(to: str, subject: str, body: str) -> bool:
+    if _is_test_recipient(to):
+        print(f"[mail] 跳过测试收件地址：{to}")
+        return False
+
     if not settings.email_enabled:
         if settings.debug:
             print(f"[DEV] email to {to}: {subject}\n{body}")

@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     secret_key: str
     admin_email: str
     site_url: str = "http://localhost:8000"
-    email_enabled: bool = False
+    email_enabled: bool = True
+    admin_login_code_enabled: bool = True
     database_url: str = (
         "mysql+pymysql://user:password@127.0.0.1:3306/blog?charset=utf8mb4"
     )

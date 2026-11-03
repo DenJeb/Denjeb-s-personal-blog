@@ -7,6 +7,7 @@ import re
 import pyotp
 from sqlalchemy import select
 
+from app.config import settings
 from app.db import SessionLocal
 from app.models import AdminUser
 from tests.conftest import ADMIN_EMAIL, ADMIN_PASSWORD
@@ -72,6 +73,17 @@ def test_enable_totp_and_login(admin_client, client):
             follow_redirects=False,
         )
         assert response.status_code == 303
+        assert response.headers["location"] == "/admin/login/code"
+
+        code_page = client.get("/admin/login/code")
+        assert code_page.status_code == 200
+        token = csrf_token(code_page.text)
+        response = client.post(
+            "/admin/login/code",
+            data={"csrf_token": token, "code": "123456"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
         assert response.headers["location"] == "/admin/login/totp"
 
         totp_page = client.get("/admin/login/totp")
@@ -110,6 +122,17 @@ def test_wrong_totp_code_rejected(admin_client, client):
             follow_redirects=False,
         )
         assert response.status_code == 303
+        assert response.headers["location"] == "/admin/login/code"
+
+        code_page = client.get("/admin/login/code")
+        token = csrf_token(code_page.text)
+        response = client.post(
+            "/admin/login/code",
+            data={"csrf_token": token, "code": "123456"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/login/totp"
 
         totp_page = client.get("/admin/login/totp")
         token = csrf_token(totp_page.text)
@@ -125,6 +148,104 @@ def test_wrong_totp_code_rejected(admin_client, client):
         )
     finally:
         _clear_totp()
+
+
+def test_admin_login_requires_email_code(admin_client, client):
+    login_page = client.get("/admin/login")
+    token = csrf_token(login_page.text)
+    response = client.post(
+        "/admin/login",
+        data={
+            "csrf_token": token,
+            "username": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD,
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/login/code"
+
+    # 验证码通过之前，不授予后台会话
+    assert client.get("/admin/", follow_redirects=False).headers["location"] == (
+        "/admin/login"
+    )
+
+    code_page = client.get("/admin/login/code")
+    assert code_page.status_code == 200
+    token = csrf_token(code_page.text)
+
+    wrong = client.post(
+        "/admin/login/code",
+        data={"csrf_token": token, "code": "000000"},
+        follow_redirects=False,
+    )
+    assert wrong.status_code == 400
+    assert "验证码不正确" in wrong.text
+
+    response = client.post(
+        "/admin/login/code",
+        data={"csrf_token": token, "code": "123456"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/"
+    assert client.get("/admin/").status_code == 200
+
+
+def test_admin_login_code_resend(admin_client, client):
+    login_page = client.get("/admin/login")
+    token = csrf_token(login_page.text)
+    response = client.post(
+        "/admin/login",
+        data={
+            "csrf_token": token,
+            "username": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD,
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    code_page = client.get("/admin/login/code")
+    token = csrf_token(code_page.text)
+    response = client.post(
+        "/admin/login/code/resend",
+        data={"csrf_token": token},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/login/code?sent=1"
+
+    resent_page = client.get("/admin/login/code?sent=1")
+    assert "新的验证码已发送" in resent_page.text
+
+    token = csrf_token(resent_page.text)
+    response = client.post(
+        "/admin/login/code",
+        data={"csrf_token": token, "code": "123456"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/"
+
+
+def test_admin_login_code_can_be_disabled(admin_client, client, monkeypatch):
+    monkeypatch.setattr(settings, "admin_login_code_enabled", False)
+
+    login_page = client.get("/admin/login")
+    token = csrf_token(login_page.text)
+    response = client.post(
+        "/admin/login",
+        data={
+            "csrf_token": token,
+            "username": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD,
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/"
+    assert client.get("/admin/").status_code == 200
 
 
 def test_disable_totp(admin_client):
