@@ -26,6 +26,9 @@ class BlogPost(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(200))
+    slug: Mapped[str | None] = mapped_column(
+        String(200), unique=True, index=True, nullable=True
+    )
     summary: Mapped[str] = mapped_column(String(500), default="")
     content: Mapped[str] = mapped_column(Text)
     content_html: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -135,6 +138,7 @@ class AdminUser(Base):
     )
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     session_version: Mapped[int] = mapped_column(default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -169,3 +173,21 @@ class RateLimitEvent(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, index=True, server_default=func.now()
     )
+
+
+class NotificationOutbox(Base):
+    __tablename__ = "notification_outbox"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(50), index=True)
+    recipient: Mapped[str] = mapped_column(String(255))
+    subject: Mapped[str] = mapped_column(String(200))
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, index=True, server_default=func.now()
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, index=True
+    )
+    attempts: Mapped[int] = mapped_column(default=0, server_default="0")
+    last_error: Mapped[str | None] = mapped_column(String(500), nullable=True)

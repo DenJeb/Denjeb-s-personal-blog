@@ -2,6 +2,9 @@
 ========== 后台登录与退出 ==========
 """
 
+from datetime import UTC, datetime
+
+import pyotp
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from pwdlib import PasswordHash
@@ -21,6 +24,10 @@ password_hash = PasswordHash.recommended()
 
 LOGIN_WINDOW_SECONDS = 300
 LOGIN_MAX_FAILURES = 5
+PENDING_TTL_SECONDS = 300
+PENDING_ADMIN_ID = "pending_admin_id"
+PENDING_ADMIN_VERSION = "pending_admin_version"
+PENDING_ADMIN_AT = "pending_admin_at"
 
 
 def _client_ip(request: Request) -> str:
@@ -41,6 +48,33 @@ def _record_login_failure(db: Session, ip: str) -> None:
     record_event(db, _login_bucket(ip))
 
 
+def _clear_pending(request: Request) -> None:
+    request.session.pop(PENDING_ADMIN_ID, None)
+    request.session.pop(PENDING_ADMIN_VERSION, None)
+    request.session.pop(PENDING_ADMIN_AT, None)
+
+
+def _pending_admin(request: Request, db: Session) -> AdminUser | None:
+    admin_id = request.session.get(PENDING_ADMIN_ID)
+    timestamp = request.session.get(PENDING_ADMIN_AT)
+    if admin_id is None or timestamp is None:
+        return None
+    if datetime.now(UTC).timestamp() - float(timestamp) > PENDING_TTL_SECONDS:
+        _clear_pending(request)
+        return None
+
+    admin = db.get(AdminUser, admin_id)
+    if (
+        admin is None
+        or not admin.totp_secret
+        or (admin.email or "").lower() != settings.admin_email_normalized
+        or request.session.get(PENDING_ADMIN_VERSION) != admin.session_version
+    ):
+        _clear_pending(request)
+        return None
+    return admin
+
+
 @router.get("/login")
 def login_page(request: Request, db: DbSession):
     admin_id = request.session.get("admin_user_id")
@@ -54,6 +88,9 @@ def login_page(request: Request, db: DbSession):
             return RedirectResponse("/admin/", status_code=303)
         request.session.pop("admin_user_id", None)
         request.session.pop("admin_version", None)
+
+    if _pending_admin(request, db) is not None:
+        return RedirectResponse("/admin/login/totp", status_code=303)
 
     return templates.TemplateResponse(
         request=request,
@@ -111,9 +148,73 @@ def login(
             status_code=400,
         )
 
+    if user.totp_secret:
+        request.session.pop("admin_user_id", None)
+        request.session.pop("admin_version", None)
+        request.session[PENDING_ADMIN_ID] = user.id
+        request.session[PENDING_ADMIN_VERSION] = user.session_version
+        request.session[PENDING_ADMIN_AT] = datetime.now(UTC).timestamp()
+        return RedirectResponse("/admin/login/totp", status_code=303)
+
     clear_bucket(db, _login_bucket(ip))
     request.session["admin_user_id"] = user.id
     request.session["admin_version"] = user.session_version
+    return RedirectResponse("/admin/", status_code=303)
+
+
+@router.get("/login/totp")
+def login_totp_page(request: Request, db: DbSession):
+    admin = _pending_admin(request, db)
+    if admin is None:
+        return RedirectResponse("/admin/login", status_code=303)
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/login_totp.html",
+        context={"app_name": settings.app_name, "email": admin.email},
+    )
+
+
+@router.post("/login/totp")
+def login_totp(
+    request: Request,
+    db: DbSession,
+    code: str = Form(...),
+    _csrf: None = Depends(verify_csrf),
+):
+    ip = _client_ip(request)
+    if _login_is_blocked(db, ip):
+        return templates.TemplateResponse(
+            request=request,
+            name="admin/login_totp.html",
+            context={
+                "app_name": settings.app_name,
+                "error": "尝试次数过多，请 5 分钟后再试。",
+            },
+            status_code=429,
+            headers={"Retry-After": str(LOGIN_WINDOW_SECONDS)},
+        )
+
+    admin = _pending_admin(request, db)
+    if admin is None:
+        return RedirectResponse("/admin/login", status_code=303)
+
+    if not pyotp.TOTP(admin.totp_secret).verify(code.strip(), valid_window=1):
+        _record_login_failure(db, ip)
+        return templates.TemplateResponse(
+            request=request,
+            name="admin/login_totp.html",
+            context={
+                "app_name": settings.app_name,
+                "email": admin.email,
+                "error": "验证码不正确，请重试。",
+            },
+            status_code=400,
+        )
+
+    clear_bucket(db, _login_bucket(ip))
+    _clear_pending(request)
+    request.session["admin_user_id"] = admin.id
+    request.session["admin_version"] = admin.session_version
     return RedirectResponse("/admin/", status_code=303)
 
 
@@ -121,4 +222,5 @@ def login(
 def logout(request: Request, _csrf: None = Depends(verify_csrf)):
     request.session.pop("admin_user_id", None)
     request.session.pop("admin_version", None)
+    _clear_pending(request)
     return RedirectResponse("/admin/login", status_code=303)

@@ -8,21 +8,26 @@ from email.message import EmailMessage
 from app.config import settings
 
 
-def send_code(email: str, code: str, purpose: str = "验证码") -> bool:
+def send_email(to: str, subject: str, body: str) -> bool:
+    if not settings.email_enabled:
+        if settings.debug:
+            print(f"[DEV] email to {to}: {subject}\n{body}")
+            return True
+        print("[mail] 邮件发送已关闭。")
+        return False
+
     if not settings.smtp_host or (settings.smtp_user and not settings.smtp_password):
         if settings.debug:
-            print(f"[DEV] {purpose} for {email}: {code}")
+            print(f"[DEV] email to {to}: {subject}\n{body}")
             return True
-        print("[mail] SMTP 未配置，已拒绝发送验证码。")
+        print("[mail] SMTP 未配置，跳过邮件。")
         return False
 
     message = EmailMessage()
-    message["Subject"] = f"{settings.app_name} {purpose}"
+    message["Subject"] = subject
     message["From"] = settings.smtp_from or settings.smtp_user
-    message["To"] = email
-    message.set_content(
-        f"你的{purpose}是：{code}\n\n10 分钟内有效。如果不是你本人操作，请忽略。"
-    )
+    message["To"] = to
+    message.set_content(body)
 
     try:
         if settings.smtp_use_ssl:
@@ -39,3 +44,11 @@ def send_code(email: str, code: str, purpose: str = "验证码") -> bool:
     except (OSError, smtplib.SMTPException) as exc:
         print(f"[mail] 发送失败：{exc}")
         return False
+
+
+def send_code(email: str, code: str, purpose: str = "验证码") -> bool:
+    return send_email(
+        email,
+        f"{settings.app_name} {purpose}",
+        f"你的{purpose}是：{code}\n\n10 分钟内有效。如果不是你本人操作，请忽略。",
+    )

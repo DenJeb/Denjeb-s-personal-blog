@@ -11,6 +11,7 @@
   <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
   <link rel="stylesheet" href="{{ url_for('static', path='/css/pico.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+  {% block head %}{% endblock %}
 </head>
 <body>
   <header class="container">
@@ -26,6 +27,7 @@
         <li><a href="{{ url_for('admin_messages') }}">留言</a></li>
         <li><a href="{{ url_for('admin_uploads') }}">图片</a></li>
         <li><a href="{{ url_for('admin_users') }}">用户</a></li>
+        <li><a href="{{ url_for('security_page') }}">安全</a></li>
         <li><a href="{{ url_for('index') }}" target="_blank" rel="noopener">前台</a></li>
         {% include "_theme_button.html" %}
         <li>
@@ -45,6 +47,8 @@
   <footer class="container">
     <small>后台 · {{ app_name }}</small>
   </footer>
+  <script src="{{ url_for('static', path='/js/vendor/htmx.min.js') }}" defer></script>
   <script src="{{ url_for('static', path='/js/theme.js') }}"></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

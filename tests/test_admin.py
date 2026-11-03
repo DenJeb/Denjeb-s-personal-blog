@@ -2,7 +2,6 @@
 ========== 后台功能测试 ==========
 """
 
-import base64
 import re
 from pathlib import Path
 
@@ -10,12 +9,10 @@ from sqlalchemy import delete, select
 
 from app.db import SessionLocal
 from app.models import BlogPost
-from tests.utils import csrf_token
+from tests.utils import csrf_token, image_bytes
 
 POST_TITLE = "__pytest_post__"
-PNG = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nQAAAABJRU5ErkJggg=="
-)
+PNG = image_bytes()
 UPLOAD_DIR = Path("app/static/uploads")
 
 
@@ -23,6 +20,15 @@ def _cleanup_content() -> None:
     with SessionLocal() as db:
         db.execute(delete(BlogPost).where(BlogPost.title.like(POST_TITLE + "%")))
         db.commit()
+
+
+def test_post_form_includes_editor(admin_client):
+    response = admin_client.get("/admin/posts/new")
+    assert response.status_code == 200
+    assert "/static/js/editor.js" in response.text
+    assert "/static/css/editor.css" in response.text
+    assert "data-markdown-editor" in response.text
+    assert 'name="content"' in response.text
 
 
 def test_admin_pages(admin_client):
@@ -35,6 +41,7 @@ def test_admin_pages(admin_client):
         "/admin/messages",
         "/admin/uploads",
         "/admin/users",
+        "/admin/security",
         "/admin/posts/1/edit",
     ):
         assert admin_client.get(path).status_code == 200, path

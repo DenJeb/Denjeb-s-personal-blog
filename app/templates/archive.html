@@ -26,7 +26,7 @@
         <ul class="archive-list" role="list">
           {% for post in posts %}
             <li class="archive-item">
-              <a href="{{ url_for('post_detail', post_id=post.id) }}">{{ post.title }}</a>
+              <a href="{{ post_path(post) }}">{{ post.title }}</a>
               <small>{{ post.published_at }}</small>
             </li>
           {% endfor %}

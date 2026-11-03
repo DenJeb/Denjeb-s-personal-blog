@@ -409,3 +409,117 @@ body.public main.page-wide > .page-content {
   color: var(--pico-muted-color);
   white-space: nowrap;
 }
+
+/* ========== 文章页：目录 / 导航 / 相关文章 / 代码复制 ========== */
+
+.post-toc {
+  margin: 0 0 1.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 0.5rem;
+  background: var(--pico-card-sectioning-background-color);
+}
+
+.post-toc h2 {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.post-toc ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.post-toc li {
+  margin: 0.15rem 0;
+}
+
+.post-toc .toc-level-3 {
+  margin-left: 1rem;
+}
+
+.post-toc .toc-level-4,
+.post-toc .toc-level-5,
+.post-toc .toc-level-6 {
+  margin-left: 2rem;
+}
+
+.post-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 2rem 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--pico-muted-border-color);
+}
+
+.post-nav a {
+  max-width: 48%;
+}
+
+.post-nav a[rel="next"] {
+  margin-left: auto;
+  text-align: right;
+}
+
+.related-posts {
+  margin-top: 2rem;
+}
+
+.related-posts ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.related-posts li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.related-posts small {
+  color: var(--pico-muted-color);
+}
+
+.code-block {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.code-block pre {
+  margin-bottom: 0;
+}
+
+.copy-code {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: auto;
+  margin: 0;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.copy-code:hover,
+.copy-code:focus-visible {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .post-nav {
+    flex-direction: column;
+  }
+
+  .post-nav a {
+    max-width: none;
+  }
+
+  .post-nav a[rel="next"] {
+    text-align: left;
+  }
+}

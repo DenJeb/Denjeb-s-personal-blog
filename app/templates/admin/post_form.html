@@ -6,6 +6,10 @@
 
 {% block title %}编辑文章 · {{ app_name }}{% endblock %}
 
+{% block head %}
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/editor.css') }}">
+{% endblock %}
+
 {% block content %}
   <hgroup>
     <h1>{% if post %}编辑文章{% else %}新建文章{% endif %}</h1>
@@ -21,6 +25,12 @@
     <label>
       标题
       <input type="text" name="title" value="{{ form.title }}" maxlength="200" required>
+    </label>
+
+    <label>
+      链接标识
+      <input type="text" name="slug" value="{{ form.slug }}" maxlength="200" placeholder="留空则根据标题生成，例如 bo-ke-kai-zhang">
+      <small>文章地址为 /posts/链接标识，发布后尽量不要再改。</small>
     </label>
 
     <label>
@@ -43,10 +53,28 @@
       发布到前台（不勾选则保存为草稿）
     </label>
 
-    <label>
-      正文
-      <textarea name="content" rows="18" required>{{ form.content }}</textarea>
-    </label>
+    <div class="editor-field">
+      <span class="editor-label">正文</span>
+      <div class="markdown-editor" data-markdown-editor
+           data-preview-url="{{ url_for('preview_post') }}"
+           data-upload-url="{{ url_for('inline_upload') }}">
+        <div class="editor-toolbar" role="toolbar" aria-label="Markdown 工具栏">
+          <button type="button" data-action="bold" title="粗体 (Ctrl+B)" aria-label="粗体"><strong>B</strong></button>
+          <button type="button" data-action="italic" title="斜体 (Ctrl+I)" aria-label="斜体"><em>I</em></button>
+          <button type="button" data-action="heading" title="标题" aria-label="标题">H</button>
+          <button type="button" data-action="link" title="链接 (Ctrl+K)" aria-label="链接">链接</button>
+          <button type="button" data-action="code" title="行内代码" aria-label="行内代码">&lt;/&gt;</button>
+          <button type="button" data-action="quote" title="引用" aria-label="引用">引用</button>
+          <button type="button" data-action="ul" title="无序列表" aria-label="无序列表">列表</button>
+          <button type="button" data-action="image" title="上传图片" aria-label="上传图片">图片</button>
+          <button type="button" data-action="preview" title="预览" aria-label="预览">预览</button>
+        </div>
+        <textarea name="content" rows="18" required data-editor-input>{{ form.content }}</textarea>
+        <div class="markdown-preview" data-editor-preview hidden></div>
+        <p class="editor-status" data-editor-status aria-live="polite"></p>
+        <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" data-editor-image-input hidden>
+      </div>
+    </div>
 
     <label>
       插入图片（可选）
@@ -66,4 +94,8 @@
   {% if post %}
     <p><a href="{{ url_for('post_delete_confirm', post_id=post.id) }}" class="secondary">删除这篇文章</a></p>
   {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', path='/js/editor.js') }}"></script>
 {% endblock %}

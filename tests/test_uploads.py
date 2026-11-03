@@ -2,22 +2,38 @@
 ========== 图片管理测试 ==========
 """
 
-import base64
 from datetime import date
+from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
+import pytest
+from PIL import Image
 from sqlalchemy import delete
+from starlette.datastructures import UploadFile
 
 from app.db import SessionLocal
 from app.models import BlogPost
-from app.routers.admin.common import delete_orphan_uploads
-from tests.utils import csrf_token
+from app.services import uploads
+from app.services.uploads import (
+    MAX_IMAGE_DIMENSION,
+    MAX_IMAGE_SIZE,
+    delete_orphan_uploads,
+    process_image,
+    save_uploaded_image,
+)
+from tests.utils import csrf_token, image_bytes
 
 UPLOAD_DIR = Path("app/static/uploads")
-PNG = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nQAAAABJRU5ErkJggg=="
-)
+PNG = image_bytes()
+
+
+def _image_bytes(
+    size: tuple[int, int] = (10, 10),
+    fmt: str = "PNG",
+    color: tuple[int, int, int] = (255, 0, 0),
+) -> bytes:
+    return image_bytes(size=size, fmt=fmt, color=color)
 
 
 def test_delete_unreferenced_upload(admin_client):
@@ -107,3 +123,52 @@ def test_delete_orphan_uploads():
     finally:
         if path.exists():
             path.unlink()
+
+
+def test_process_image_converts_png_to_webp():
+    data, extension = process_image(_image_bytes(size=(10, 10)))
+    assert extension == ".webp"
+    assert data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+
+
+def test_process_image_resizes_large_image():
+    data, _ = process_image(_image_bytes(size=(3000, 1000), fmt="JPEG"))
+    with Image.open(BytesIO(data)) as image:
+        assert max(image.size) == MAX_IMAGE_DIMENSION
+
+
+def test_process_image_applies_exif_orientation():
+    image = Image.new("RGB", (40, 20), (255, 0, 0))
+    exif = image.getexif()
+    exif[274] = 6
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG", exif=exif)
+
+    data, _ = process_image(buffer.getvalue())
+    with Image.open(BytesIO(data)) as result:
+        assert result.size == (20, 40)
+
+
+def test_process_image_keeps_gif_bytes():
+    data = _image_bytes(size=(10, 10), fmt="GIF")
+    assert process_image(data) == (data, ".gif")
+
+
+def test_process_image_rejects_corrupt_image():
+    with pytest.raises(ValueError, match="无法解析"):
+        process_image(b"\x89PNG\r\n\x1a\nnot really a png")
+
+
+def test_process_image_rejects_decompression_bomb(monkeypatch):
+    monkeypatch.setattr(uploads, "MAX_IMAGE_PIXELS", 10)
+    with pytest.raises(ValueError, match="尺寸过大"):
+        process_image(_image_bytes(size=(20, 20)))
+
+
+def test_save_uploaded_image_rejects_large_file():
+    upload = UploadFile(
+        filename="big.png",
+        file=BytesIO(b"x" * (MAX_IMAGE_SIZE + 1)),
+    )
+    with pytest.raises(ValueError, match="5 MB"):
+        save_uploaded_image(upload)

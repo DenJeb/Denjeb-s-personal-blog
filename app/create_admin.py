@@ -62,6 +62,20 @@ def reset_admin_password(new_password: str) -> bool:
         return True
 
 
+def reset_admin_totp() -> bool:
+    """关闭唯一管理员的 TOTP，并撤销旧会话。"""
+    with SessionLocal() as db:
+        admin = db.scalar(
+            select(AdminUser).where(AdminUser.email == settings.admin_email_normalized)
+        )
+        if admin is None:
+            return False
+        admin.totp_secret = None
+        admin.session_version += 1
+        db.commit()
+        return True
+
+
 def reset_admin_password_flow() -> None:
     print(f"唯一管理员邮箱：{settings.admin_email_normalized}")
 
@@ -85,7 +99,18 @@ def main() -> None:
         action="store_true",
         help="重置唯一管理员密码（默认行为相同）",
     )
-    parser.parse_args()
+    parser.add_argument(
+        "--reset-totp",
+        action="store_true",
+        help="关闭唯一管理员的两步验证（丢失认证器时使用）",
+    )
+    args = parser.parse_args()
+    if args.reset_totp:
+        if reset_admin_totp():
+            print("已关闭两步验证，请重新登录。")
+        else:
+            print("未找到唯一管理员账号。")
+        return
     reset_admin_password_flow()
 
 

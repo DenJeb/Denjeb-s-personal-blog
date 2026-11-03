@@ -33,28 +33,7 @@
     </thead>
     <tbody>
       {% for comment in comments %}
-        <tr>
-          <td>
-            <a href="{{ url_for('post_detail', post_id=comment.post_id) }}" target="_blank" rel="noopener">{{ comment.post.title }}</a>
-          </td>
-          <td>{{ comment.author_name }}</td>
-          <td title="{{ comment.content }}">{{ comment.content[:80] }}{% if comment.content | length > 80 %}…{% endif %}</td>
-          <td>{{ comment.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
-          <td>
-            {% if comment.is_approved %}
-              <ins>已通过</ins>
-            {% else %}
-              <mark>待审核</mark>
-            {% endif %}
-          </td>
-          <td>
-            <form method="post" action="{{ url_for('comment_approve', comment_id=comment.id) }}">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-              <button type="submit" class="secondary outline">{{ "取消审核" if comment.is_approved else "通过" }}</button>
-            </form>
-            <a href="{{ url_for('comment_delete_confirm', comment_id=comment.id) }}">删除</a>
-          </td>
-        </tr>
+        {% include "admin/_comment_row.html" %}
       {% else %}
         <tr><td colspan="6">还没有评论。</td></tr>
       {% endfor %}

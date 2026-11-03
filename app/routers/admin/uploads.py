@@ -11,12 +11,8 @@ from app.auth import CurrentAdmin
 from app.config import settings
 from app.csrf import verify_csrf
 from app.deps import DbSession
-from app.routers.admin.common import (
-    PAGE_SIZE,
-    UPLOAD_DIR,
-    all_referenced_upload_urls,
-    page_slice,
-)
+from app.routers.admin.common import PAGE_SIZE, page_slice
+from app.services.uploads import UPLOAD_DIR, all_referenced_upload_urls
 from app.templating import templates
 
 router = APIRouter()

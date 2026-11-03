@@ -57,6 +57,7 @@ def admin_moment_comments(
 
 @router.post("/moment-comments/{comment_id}/approve")
 def moment_comment_approve(
+    request: Request,
     comment_id: int,
     _admin: CurrentAdmin,
     db: DbSession,
@@ -69,6 +70,16 @@ def moment_comment_approve(
 
     comment.is_approved = not comment.is_approved
     db.commit()
+    if request.headers.get("HX-Request") == "true":
+        return templates.TemplateResponse(
+            request=request,
+            name="admin/_moment_comment_row.html",
+            context={
+                "comment": comment,
+                "public_page": moment_page(db, comment.moment),
+                "page": page,
+            },
+        )
     suffix = f"&page={page}" if page > 1 else ""
     return RedirectResponse(f"/admin/moment-comments?saved=1{suffix}", status_code=303)
 

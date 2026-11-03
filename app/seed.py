@@ -10,6 +10,7 @@ from app.db import SessionLocal
 from app.markdown import render_markdown
 from app.models import BlogPost
 from app.sample_data import BLOG_POSTS
+from app.slugs import slugify_text
 
 
 def seed() -> None:
@@ -22,6 +23,7 @@ def seed() -> None:
             db.add(
                 BlogPost(
                     title=item["title"],
+                    slug=slugify_text(item["title"]),
                     summary=item["summary"],
                     content=item["content"],
                     content_html=render_markdown(item["content"]),

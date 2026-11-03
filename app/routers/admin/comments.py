@@ -53,6 +53,7 @@ def admin_comments(
 
 @router.post("/comments/{comment_id}/approve")
 def comment_approve(
+    request: Request,
     comment_id: int,
     _admin: CurrentAdmin,
     db: DbSession,
@@ -64,6 +65,12 @@ def comment_approve(
 
     comment.is_approved = not comment.is_approved
     db.commit()
+    if request.headers.get("HX-Request") == "true":
+        return templates.TemplateResponse(
+            request=request,
+            name="admin/_comment_row.html",
+            context={"comment": comment},
+        )
     return RedirectResponse("/admin/comments?saved=1", status_code=303)
 
 

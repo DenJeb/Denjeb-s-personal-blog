@@ -1,10 +1,10 @@
 {% set post_tags = post.sorted_tags or post.tags %}
 <article>
   <header>
-    <h2><a href="{{ url_for('post_detail', post_id=post.id) }}">{{ post.title }}</a></h2>
+    <h2><a href="{{ post_path(post) }}">{{ post.title }}</a></h2>
     <p>
       <small>
-        {{ post.published_at }}
+        {{ post.published_at }} · 约 {{ reading_minutes(post.content) }} 分钟
         {% if post_tags %}
           · {% for tag in post_tags %}<a href="{{ tag_url(tag) }}">{{ tag }}</a>{% if not loop.last %} / {% endif %}{% endfor %}
         {% endif %}

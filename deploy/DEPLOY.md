@@ -36,6 +36,8 @@ cp .env.production.example .env
 - `TRUSTED_HOSTS=yourdomain.com,www.yourdomain.com`
 - `SECRET_KEY` 用随机长串
 - `ADMIN_EMAIL` 填唯一管理员邮箱
+- `SITE_URL=https://yourdomain.com`，用于邮件通知里的链接
+- `EMAIL_ENABLED=true`；本地或测试环境设为 `false`，避免误发真实邮件
 - `DATABASE_URL` 填生产数据库
 - `SMTP_*` 填真实邮件配置
 - `MYSQLDUMP_PATH=/usr/bin/mysqldump`
@@ -64,6 +66,14 @@ python -m app.create_admin
 python -m app.create_admin --reset
 ```
 
+管理员丢失认证器、无法完成两步验证时：
+
+```bash
+python -m app.create_admin --reset-totp
+```
+
+该命令会关闭两步验证并撤销旧的后台会话。
+
 如果需要恢复内容：
 
 ```bash
@@ -71,6 +81,14 @@ python -m app.content_io import --replace
 ```
 
 内容备份 JSON 不在 Git 仓库中，需要单独安全传输到 `/srv/blog/content/content-backup.json`。
+
+新评论、动态评论和留言会写入通知 outbox，并在请求结束后尝试发送。SMTP 暂时不可用或需要补发时：
+
+```bash
+python -m app.services.notifications send --limit 50
+```
+
+可以把这个命令加入 cron 或 systemd timer 定时执行。
 
 完成后把目录交给服务用户，并保护 `.env`：
 
@@ -116,7 +134,29 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-把配置里的域名、证书路径和 `/srv/blog` 改成实际值。`nginx.conf` 里已经包含静态文件、限流和安全响应头。
+把配置里的域名、证书路径和 `/srv/blog` 改成实际值。`nginx.conf` 里已经包含静态文件、限流、HSTS 和安全响应头。
+
+`SESSION_HTTPS_ONLY=true` 时应用会使用 `__Host-blog_session` Cookie。`blog.service` 已经开启 `--proxy-headers`，请保留 Nginx 的 `X-Forwarded-Proto` 头，确保应用生成的绝对链接使用 HTTPS。
+
+### 预留给 Next.js
+
+当前 Nginx 把所有请求代理到 FastAPI。以后接入 Next.js 时，建议保持同源路径代理，不要直接让浏览器跨域调用 FastAPI：
+
+```nginx
+location /api/ {
+    proxy_pass http://127.0.0.1:8000;
+}
+
+location /static/ {
+    proxy_pass http://127.0.0.1:8000;
+}
+
+location / {
+    proxy_pass http://127.0.0.1:3000;
+}
+```
+
+这样 `/api/v1`、Session Cookie、CSRF 和 `__Host-` Cookie 都能继续工作；Next 服务端需要转发 FastAPI 的 Cookie，而不是改用 JWT/localStorage。
 
 ## 7. 防火墙
 

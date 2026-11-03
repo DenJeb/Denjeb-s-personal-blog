@@ -20,7 +20,7 @@ from app.models import (
     MomentComment,
     User,
 )
-from app.routers.admin.common import delete_orphan_uploads
+from app.services.uploads import delete_orphan_uploads
 
 DEFAULT_PATH = PROJECT_DIR / "content" / "content-backup.json"
 
@@ -45,6 +45,7 @@ def export_content(path: Path = DEFAULT_PATH) -> None:
                 {
                     "id": post.id,
                     "title": post.title,
+                    "slug": post.slug,
                     "summary": post.summary,
                     "content": post.content,
                     "published_at": post.published_at.isoformat(),
@@ -140,6 +141,7 @@ def import_content(
                     BlogPost(
                         id=item["id"],
                         title=item["title"],
+                        slug=item.get("slug") or f"post-{item['id']}",
                         summary=item.get("summary", ""),
                         content=content,
                         content_html=render_markdown(content),

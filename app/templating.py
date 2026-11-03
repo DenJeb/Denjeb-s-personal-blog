@@ -9,6 +9,8 @@ from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
+from app.services.content import reading_minutes
+
 APP_DIR = Path(__file__).resolve().parent
 
 templates = Jinja2Templates(directory=APP_DIR / "templates")
@@ -29,6 +31,10 @@ def _tag_url(tag: str, page: int | None = None) -> str:
     if page is not None and page > 1:
         url += f"&page={page}"
     return url
+
+
+def _post_path(post) -> str:
+    return f"/posts/{post.slug or post.id}"
 
 
 def _canonical_url(request: Request) -> str:
@@ -56,5 +62,7 @@ def _page_url(request: Request, page: int, param: str = "page") -> str:
 
 templates.env.globals["csrf_token"] = _csrf_token
 templates.env.globals["tag_url"] = _tag_url
+templates.env.globals["post_path"] = _post_path
+templates.env.globals["reading_minutes"] = reading_minutes
 templates.env.globals["canonical_url"] = _canonical_url
 templates.env.globals["page_url"] = _page_url

@@ -24,13 +24,15 @@ from app.deps import DbSession
 from app.models import BlogPost
 from app.routers.admin.common import (
     PAGE_SIZE,
-    append_uploaded_image,
-    delete_unreferenced_uploads,
     fill_post,
     page_slice,
     post_form_values,
-    upload_urls_in_text,
     validate_content_fields,
+)
+from app.services.uploads import (
+    append_uploaded_image,
+    delete_unreferenced_uploads,
+    upload_urls_in_text,
 )
 from app.templating import templates
 
@@ -98,6 +100,7 @@ def post_edit(
     content: str = Form(...),
     published_at: str = Form(...),
     tags: str = Form(""),
+    slug: str = Form(""),
     is_published: bool = Form(False),
     image: UploadFile | None = File(None),
     image_alt: str = Form(""),
@@ -109,6 +112,7 @@ def post_edit(
 
     form = {
         "title": title,
+        "slug": slug,
         "summary": summary,
         "content": content,
         "published_at": published_at,
@@ -141,6 +145,7 @@ def post_edit(
     assert published_date is not None
     old_urls = upload_urls_in_text(post.content, post.content_html)
     fill_post(
+        db,
         post,
         title,
         summary,
@@ -148,6 +153,7 @@ def post_edit(
         published_date,
         tags,
         is_published,
+        slug,
     )
     db.commit()
     delete_unreferenced_uploads(db, old_urls)
@@ -165,6 +171,7 @@ def post_create_page(request: Request, _admin: CurrentAdmin):
             "post": None,
             "form": {
                 "title": "",
+                "slug": "",
                 "summary": "",
                 "content": "",
                 "published_at": date.today().isoformat(),
@@ -185,6 +192,7 @@ def post_create(
     content: str = Form(...),
     published_at: str = Form(...),
     tags: str = Form(""),
+    slug: str = Form(""),
     is_published: bool = Form(False),
     image: UploadFile | None = File(None),
     image_alt: str = Form(""),
@@ -192,6 +200,7 @@ def post_create(
 ):
     form = {
         "title": title,
+        "slug": slug,
         "summary": summary,
         "content": content,
         "published_at": published_at,
@@ -224,6 +233,7 @@ def post_create(
     assert published_date is not None
     post = BlogPost()
     fill_post(
+        db,
         post,
         title,
         summary,
@@ -231,6 +241,7 @@ def post_create(
         published_date,
         tags,
         is_published,
+        slug,
     )
     db.add(post)
     db.commit()

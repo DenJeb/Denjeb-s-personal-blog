@@ -11,11 +11,14 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
     app_name: str = "Denjeb 的个人博客"
+    author_name: str = "DenJeb"
     debug: bool = False
     session_https_only: bool = False
     trusted_hosts: str = "localhost,127.0.0.1,testserver"
     secret_key: str
     admin_email: str
+    site_url: str = "http://localhost:8000"
+    email_enabled: bool = False
     database_url: str = (
         "mysql+pymysql://user:password@127.0.0.1:3306/blog?charset=utf8mb4"
     )

@@ -48,7 +48,7 @@
           </td>
           <td>{{ post.tags | join(" / ") }}</td>
           <td>
-            <a href="{{ url_for('post_detail', post_id=post.id) }}" target="_blank" rel="noopener">预览</a> ·
+            <a href="{{ post_path(post) }}" target="_blank" rel="noopener">预览</a> ·
             <a href="{{ url_for('post_edit_page', post_id=post.id) }}">编辑</a> ·
             <a href="{{ url_for('post_delete_confirm', post_id=post.id) }}">删除</a>
           </td>

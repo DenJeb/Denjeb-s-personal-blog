@@ -1,0 +1,78 @@
+.editor-field {
+  margin-bottom: var(--pico-spacing, 1rem);
+}
+
+.editor-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.editor-toolbar button {
+  width: auto;
+  margin: 0;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.editor-toolbar button.is-active {
+  background: var(--pico-primary-background, #0172ad);
+  border-color: var(--pico-primary-background, #0172ad);
+  color: var(--pico-primary-inverse, #fff);
+}
+
+.markdown-editor textarea {
+  margin-bottom: 0.35rem;
+  font-family: var(--pico-font-family-monospace, ui-monospace, monospace);
+  line-height: 1.6;
+}
+
+.markdown-editor textarea[hidden],
+.markdown-preview[hidden] {
+  display: none;
+}
+
+.markdown-preview {
+  min-height: 18rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--pico-muted-border-color, #d6d6d6);
+  border-radius: var(--pico-border-radius, 0.25rem);
+  overflow-wrap: anywhere;
+}
+
+.markdown-preview > :first-child {
+  margin-top: 0;
+}
+
+.markdown-preview img {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-preview pre {
+  overflow-x: auto;
+}
+
+.markdown-editor.is-dragging {
+  outline: 2px dashed var(--pico-primary, #0172ad);
+  outline-offset: 4px;
+}
+
+.editor-status {
+  min-height: 1.25rem;
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--pico-muted-color, #666);
+}
+
+.editor-status.is-error {
+  color: var(--pico-del-color, #c0392b);
+}

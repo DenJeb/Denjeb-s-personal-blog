@@ -114,7 +114,7 @@ def test_seo_meta(client):
     assert "comment=" not in canonical.group(1)
 
     match = re.search(
-        r'<script type="application/ld\+json">(.*?)</script>',
+        r'<script type="application/ld\+json"[^>]*>(.*?)</script>',
         post,
         re.DOTALL,
     )
@@ -123,7 +123,9 @@ def test_seo_meta(client):
     assert data["@context"] == "https://schema.org"
     assert data["@type"] == "BlogPosting"
     assert data["headline"].startswith("博客开张")
-    assert data["url"].endswith("/posts/1")
+    assert data["url"].endswith(
+        "/posts/bo-ke-kai-zhang-wei-shi-yao-yong-fastapi-jinja2"
+    )
 
     home = client.get("/").text
     assert 'property="og:type" content="website"' in home

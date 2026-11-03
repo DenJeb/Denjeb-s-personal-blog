@@ -40,6 +40,7 @@ elif not _test_url.database or not _test_url.database.endswith("_test"):
 _test_url_string = _test_url.render_as_string(hide_password=False)
 settings.database_url = _test_url_string
 settings.admin_email = TEST_ADMIN_EMAIL
+settings.email_enabled = False
 os.environ["DATABASE_URL"] = _test_url_string
 
 from app.db import Base, SessionLocal, engine  # noqa: E402
@@ -50,11 +51,12 @@ from app.models import (  # noqa: E402
     Message,
     Moment,
     MomentComment,
+    NotificationOutbox,
     RateLimitEvent,
     User,
     VerificationCode,
 )
-from app.routers import account as account_router  # noqa: E402
+from app.services import accounts as accounts_service  # noqa: E402
 from tests.utils import csrf_token  # noqa: E402
 
 if engine.dialect.name == "sqlite":
@@ -154,12 +156,14 @@ def reset_transient_state() -> Generator[None]:
         db.execute(delete(VerificationCode))
         db.execute(delete(EmailRegistrationBlock))
         db.execute(delete(RateLimitEvent))
+        db.execute(delete(NotificationOutbox))
         db.commit()
     yield
     with SessionLocal() as db:
         db.execute(delete(VerificationCode))
         db.execute(delete(EmailRegistrationBlock))
         db.execute(delete(RateLimitEvent))
+        db.execute(delete(NotificationOutbox))
         db.commit()
 
 
@@ -186,8 +190,8 @@ def client() -> Generator[TestClient]:
 
 @pytest.fixture
 def user_client(monkeypatch) -> Generator[TestClient]:
-    monkeypatch.setattr(account_router, "_generate_code", lambda: "123456")
-    monkeypatch.setattr(account_router, "send_code", lambda *args, **kwargs: True)
+    monkeypatch.setattr(accounts_service, "generate_code", lambda: "123456")
+    monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
 
     with SessionLocal() as db:
         db.execute(delete(User).where(User.email == USER_EMAIL))

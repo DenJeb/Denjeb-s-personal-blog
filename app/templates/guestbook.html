@@ -17,45 +17,5 @@
     <p class="page-stat">共 {{ total }} 条</p>
   </div>
 
-  {% if request.query_params.get("message") == "submitted" %}
-    <p><mark>留言已提交。</mark></p>
-  {% elif request.query_params.get("message") == "invalid" %}
-    <p><mark>留言内容不能为空。</mark></p>
-  {% elif request.query_params.get("message") == "too_fast" %}
-    <p><mark>留言太快了，请 15 秒后再试。</mark></p>
-  {% endif %}
-
-  {% if user %}
-    <p><small>以 {{ user.username }} 的身份留言</small></p>
-    <form method="post" action="{{ url_for('submit_message') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-      <div style="display: none;">
-        <label>网站 <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
-      </div>
-      <label>
-        留言
-        <textarea name="content" rows="4" maxlength="1000" required></textarea>
-      </label>
-      <button type="submit">提交留言</button>
-    </form>
-  {% else %}
-    <p>
-      <a href="{{ url_for('user_login_page') }}?next=/guestbook">登录</a>
-      后才能留言。
-    </p>
-  {% endif %}
-
-  {% for message in messages %}
-    <article class="guestbook-message">
-      <header>
-        <strong>{{ message.author_name }}</strong>
-        <small>{{ message.created_at.strftime("%Y-%m-%d %H:%M") }}</small>
-      </header>
-      <p class="guestbook-content">{{ message.content }}</p>
-    </article>
-  {% else %}
-    <p>还没有留言。</p>
-  {% endfor %}
-
-  {% include "_pagination.html" %}
+  {% include "_guestbook_panel.html" %}
 {% endblock %}

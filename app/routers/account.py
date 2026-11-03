@@ -2,11 +2,9 @@
 ========== 前台账号：邮箱注册、验证码、登录、密码重置 ==========
 """
 
-import hashlib
-import hmac
 import re
 import secrets
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
@@ -19,9 +17,22 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.csrf import verify_csrf
 from app.deps import DbSession
-from app.mailer import send_code
 from app.models import EmailRegistrationBlock, User, VerificationCode
 from app.rate_limit import clear_bucket, is_rate_limited, record_event
+from app.services.accounts import (
+    CODE_MAX_ATTEMPTS,
+    EMAIL_BLOCK_HOURS,
+    PURPOSE_LOGIN_CODE,
+    PURPOSE_REGISTER,
+    PURPOSE_RESET,
+    hash_code,
+    load_pending_code,
+    now_naive,
+    registration_is_blocked,
+    safe_next,
+    send_verification_code,
+    valid_nickname,
+)
 from app.templating import templates
 
 router = APIRouter()
@@ -37,121 +48,12 @@ LOGIN_CODE_WINDOW_SECONDS = 600
 LOGIN_CODE_MAX = 5
 REGISTER_PROBE_MAX = 30
 LOGIN_CODE_PROBE_MAX = 30
-CODE_TTL_SECONDS = 600
-CODE_MAX_ATTEMPTS = 5
-EMAIL_BLOCK_HOURS = 24
-
-PURPOSE_REGISTER = "register"
-PURPOSE_LOGIN_CODE = "login_code"
-PURPOSE_RESET = "reset"
-PURPOSE_LABELS = {
-    PURPOSE_REGISTER: "注册验证码",
-    PURPOSE_LOGIN_CODE: "登录验证码",
-    PURPOSE_RESET: "密码重置验证码",
-}
 
 SESSION_REGISTER = "pending_registration"
 SESSION_LOGIN_CODE = "pending_login_code"
 SESSION_RESET = "pending_reset"
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-
-
-def _now() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
-
-
-def _hash_code(code: str) -> str:
-    return hmac.new(
-        settings.secret_key.encode("utf-8"),
-        code.encode("utf-8"),
-        hashlib.sha256,
-    ).hexdigest()
-
-
-def _purge_expired_codes(db: Session) -> None:
-    db.execute(delete(VerificationCode).where(VerificationCode.expires_at < _now()))
-
-
-def _create_code(
-    db: Session,
-    email: str,
-    purpose: str,
-    code: str,
-    payload: dict | None = None,
-) -> VerificationCode:
-    _purge_expired_codes(db)
-    row = VerificationCode(
-        email=email,
-        purpose=purpose,
-        code_hash=_hash_code(code),
-        payload=payload,
-        expires_at=_now() + timedelta(seconds=CODE_TTL_SECONDS),
-    )
-    db.add(row)
-    db.commit()
-    return row
-
-
-def _send_verification_code(
-    db: Session,
-    email: str,
-    purpose: str,
-    payload: dict | None = None,
-) -> VerificationCode | None:
-    code = _generate_code()
-    row = _create_code(db, email, purpose, code, payload=payload)
-    if not send_code(email, code, PURPOSE_LABELS[purpose]):
-        db.delete(row)
-        db.commit()
-        return None
-
-    db.execute(
-        delete(VerificationCode).where(
-            VerificationCode.email == email,
-            VerificationCode.purpose == purpose,
-            VerificationCode.id != row.id,
-        )
-    )
-    db.commit()
-    return row
-
-
-def _load_pending_code(
-    db: Session,
-    pending: dict | None,
-    purpose: str,
-) -> VerificationCode | None:
-    if not pending:
-        return None
-
-    code_id = pending.get("code_id")
-    if code_id is None:
-        return None
-
-    row = db.get(VerificationCode, code_id)
-    if row is None:
-        return None
-    if row.purpose != purpose or row.email != pending.get("email"):
-        return None
-    if row.expires_at <= _now():
-        db.delete(row)
-        db.commit()
-        return None
-    return row
-
-
-def _registration_is_blocked(db: Session, email: str) -> bool:
-    block = db.scalar(
-        select(EmailRegistrationBlock).where(EmailRegistrationBlock.email == email)
-    )
-    if block is None:
-        return False
-    if block.blocked_until <= _now():
-        db.delete(block)
-        db.commit()
-        return False
-    return True
 
 
 def _client_ip(request: Request) -> str:
@@ -212,20 +114,6 @@ def _record_email_code(db: Session, purpose: str, email: str) -> None:
     record_event(db, f"{purpose}_email:{email}")
 
 
-def _safe_next(next_url: str) -> str:
-    if next_url.startswith("/") and not next_url.startswith("//"):
-        return next_url
-    return "/"
-
-
-def _valid_nickname(nickname: str) -> bool:
-    return 3 <= len(nickname) <= 30 and re.fullmatch(r"\w+", nickname) is not None
-
-
-def _generate_code() -> str:
-    return f"{secrets.randbelow(1_000_000):06d}"
-
-
 @router.get("/register")
 def user_register_page(request: Request, next: str = ""):
     if getattr(request.state, "user", None) is not None:
@@ -235,7 +123,7 @@ def user_register_page(request: Request, next: str = ""):
         name="account/register.html",
         context={
             "app_name": settings.app_name,
-            "next": _safe_next(next),
+            "next": safe_next(next),
         },
     )
 
@@ -273,7 +161,7 @@ def user_register(
                 "error": "请求过于频繁，请稍后再试。",
                 "email": email,
                 "nickname": nickname,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=429,
             headers={"Retry-After": str(REGISTER_WINDOW_SECONDS)},
@@ -283,7 +171,7 @@ def user_register(
     error = None
     if EMAIL_RE.fullmatch(email) is None:
         error = "邮箱格式不正确。"
-    elif not _valid_nickname(nickname):
+    elif not valid_nickname(nickname):
         error = "昵称需为 3-30 个字符，只能包含字母、数字、下划线或中文。"
     elif len(password) < 8:
         error = "密码至少 8 位。"
@@ -293,7 +181,7 @@ def user_register(
         error = "邮箱已被使用。"
     elif db.scalar(select(User.id).where(User.username == nickname)) is not None:
         error = "昵称已被使用。"
-    elif _registration_is_blocked(db, email):
+    elif registration_is_blocked(db, email):
         error = "该邮箱注销后 24 小时内不能重新注册。"
 
     if error is None and _register_is_blocked(db, ip):
@@ -308,7 +196,7 @@ def user_register(
                 "error": error,
                 "email": email,
                 "nickname": nickname,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=400,
         )
@@ -328,13 +216,13 @@ def user_register(
                 "error": "该邮箱请求验证码过于频繁，请稍后再试。",
                 "email": email,
                 "nickname": nickname,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=429,
             headers={"Retry-After": str(REGISTER_WINDOW_SECONDS)},
         )
 
-    row = _send_verification_code(
+    row = send_verification_code(
         db,
         email,
         PURPOSE_REGISTER,
@@ -353,7 +241,7 @@ def user_register(
                 "error": "验证码发送失败，请检查 SMTP 配置或稍后再试。",
                 "email": email,
                 "nickname": nickname,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=503,
         )
@@ -362,7 +250,7 @@ def user_register(
         "code_id": row.id,
         "email": email,
         "resends": 0,
-        "next": _safe_next(next),
+        "next": safe_next(next),
     }
     _record_email_code(db, PURPOSE_REGISTER, email)
     _record_registration(db, ip)
@@ -375,7 +263,7 @@ def user_register_verify_page(request: Request, db: DbSession):
     if pending is None:
         return RedirectResponse("/register", status_code=303)
 
-    if _load_pending_code(db, pending, PURPOSE_REGISTER) is None:
+    if load_pending_code(db, pending, PURPOSE_REGISTER) is None:
         request.session.pop(SESSION_REGISTER, None)
         return RedirectResponse("/register", status_code=303)
 
@@ -400,12 +288,12 @@ def user_register_verify(
     if pending is None:
         return RedirectResponse("/register", status_code=303)
 
-    row = _load_pending_code(db, pending, PURPOSE_REGISTER)
+    row = load_pending_code(db, pending, PURPOSE_REGISTER)
     if row is None:
         request.session.pop(SESSION_REGISTER, None)
         return RedirectResponse("/register", status_code=303)
 
-    if not secrets.compare_digest(row.code_hash, _hash_code(code.strip())):
+    if not secrets.compare_digest(row.code_hash, hash_code(code.strip())):
         row.attempts += 1
         if row.attempts >= CODE_MAX_ATTEMPTS:
             db.delete(row)
@@ -436,7 +324,7 @@ def user_register_verify(
         return RedirectResponse("/register", status_code=303)
 
     if (
-        _registration_is_blocked(db, email)
+        registration_is_blocked(db, email)
         or db.scalar(select(User.id).where(User.email == email)) is not None
         or db.scalar(select(User.id).where(User.username == nickname)) is not None
     ):
@@ -499,7 +387,7 @@ def user_register_resend(
     if pending is None:
         return RedirectResponse("/register", status_code=303)
 
-    row = _load_pending_code(db, pending, PURPOSE_REGISTER)
+    row = load_pending_code(db, pending, PURPOSE_REGISTER)
     if row is None:
         request.session.pop(SESSION_REGISTER, None)
         return RedirectResponse("/register", status_code=303)
@@ -516,7 +404,7 @@ def user_register_resend(
             status_code=400,
         )
 
-    new_row = _send_verification_code(
+    new_row = send_verification_code(
         db,
         row.email,
         PURPOSE_REGISTER,
@@ -606,7 +494,7 @@ def user_forgot_password(
             status_code=429,
         )
 
-    row = _send_verification_code(db, email, PURPOSE_RESET)
+    row = send_verification_code(db, email, PURPOSE_RESET)
     if row is None:
         request.session.pop(SESSION_RESET, None)
         return templates.TemplateResponse(
@@ -654,12 +542,12 @@ def user_reset_password(
     if pending is None:
         return RedirectResponse("/forgot-password", status_code=303)
 
-    row = _load_pending_code(db, pending, PURPOSE_RESET)
+    row = load_pending_code(db, pending, PURPOSE_RESET)
     if row is None:
         request.session.pop(SESSION_RESET, None)
         return RedirectResponse("/forgot-password", status_code=303)
 
-    if not secrets.compare_digest(row.code_hash, _hash_code(code.strip())):
+    if not secrets.compare_digest(row.code_hash, hash_code(code.strip())):
         row.attempts += 1
         if row.attempts >= CODE_MAX_ATTEMPTS:
             db.delete(row)
@@ -732,7 +620,7 @@ def user_login_page(request: Request, next: str = ""):
         name="account/login.html",
         context={
             "app_name": settings.app_name,
-            "next": _safe_next(next),
+            "next": safe_next(next),
         },
     )
 
@@ -756,7 +644,7 @@ def user_login(
                 "app_name": settings.app_name,
                 "error": "尝试次数过多，请 5 分钟后再试。",
                 "email": email,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=429,
             headers={"Retry-After": str(LOGIN_WINDOW_SECONDS)},
@@ -779,7 +667,7 @@ def user_login(
                 "app_name": settings.app_name,
                 "error": "邮箱或密码错误",
                 "email": email,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=400,
         )
@@ -792,7 +680,7 @@ def user_login(
                 "app_name": settings.app_name,
                 "error": "账号已被禁用，请联系管理员。",
                 "email": email,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=403,
         )
@@ -801,7 +689,7 @@ def user_login(
     request.session["user_id"] = user.id
     request.session["user_name"] = user.username
     request.session["user_version"] = user.session_version
-    return RedirectResponse(_safe_next(next), status_code=303)
+    return RedirectResponse(safe_next(next), status_code=303)
 
 
 @router.get("/login/code")
@@ -811,7 +699,7 @@ def user_login_code_page(request: Request, db: DbSession, next: str = ""):
 
     pending = request.session.get(SESSION_LOGIN_CODE)
     if pending is not None:
-        if _load_pending_code(db, pending, PURPOSE_LOGIN_CODE) is None:
+        if load_pending_code(db, pending, PURPOSE_LOGIN_CODE) is None:
             request.session.pop(SESSION_LOGIN_CODE, None)
             pending = None
 
@@ -821,7 +709,7 @@ def user_login_code_page(request: Request, db: DbSession, next: str = ""):
         context={
             "app_name": settings.app_name,
             "pending": pending,
-            "next": pending["next"] if pending is not None else _safe_next(next),
+            "next": pending["next"] if pending is not None else safe_next(next),
         },
     )
 
@@ -843,7 +731,7 @@ def user_login_code_send(
                 "app_name": settings.app_name,
                 "error": "邮箱格式不正确。",
                 "email": email,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=400,
         )
@@ -862,7 +750,7 @@ def user_login_code_send(
                 "app_name": settings.app_name,
                 "error": "请求过于频繁，请稍后再试。",
                 "email": email,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=429,
             headers={"Retry-After": str(LOGIN_CODE_WINDOW_SECONDS)},
@@ -878,7 +766,7 @@ def user_login_code_send(
                 "app_name": settings.app_name,
                 "error": "该邮箱尚未注册，请先注册。",
                 "email": email,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=400,
         )
@@ -891,7 +779,7 @@ def user_login_code_send(
                 "app_name": settings.app_name,
                 "error": "账号已被禁用，请联系管理员。",
                 "email": email,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=403,
         )
@@ -904,7 +792,7 @@ def user_login_code_send(
                 "app_name": settings.app_name,
                 "error": "请求过于频繁，请稍后再试。",
                 "email": email,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=429,
         )
@@ -923,13 +811,13 @@ def user_login_code_send(
                 "app_name": settings.app_name,
                 "error": "该邮箱请求验证码过于频繁，请稍后再试。",
                 "email": email,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=429,
             headers={"Retry-After": str(LOGIN_CODE_WINDOW_SECONDS)},
         )
 
-    row = _send_verification_code(db, email, PURPOSE_LOGIN_CODE)
+    row = send_verification_code(db, email, PURPOSE_LOGIN_CODE)
     if row is None:
         request.session.pop(SESSION_LOGIN_CODE, None)
         return templates.TemplateResponse(
@@ -939,7 +827,7 @@ def user_login_code_send(
                 "app_name": settings.app_name,
                 "error": "验证码发送失败，请检查 SMTP 配置或稍后再试。",
                 "email": email,
-                "next": _safe_next(next),
+                "next": safe_next(next),
             },
             status_code=503,
         )
@@ -947,7 +835,7 @@ def user_login_code_send(
     request.session[SESSION_LOGIN_CODE] = {
         "code_id": row.id,
         "email": email,
-        "next": _safe_next(next),
+        "next": safe_next(next),
     }
     _record_email_code(db, PURPOSE_LOGIN_CODE, email)
     _record_login_code(db, ip)
@@ -965,12 +853,12 @@ def user_login_code_verify(
     if pending is None:
         return RedirectResponse("/login/code", status_code=303)
 
-    row = _load_pending_code(db, pending, PURPOSE_LOGIN_CODE)
+    row = load_pending_code(db, pending, PURPOSE_LOGIN_CODE)
     if row is None:
         request.session.pop(SESSION_LOGIN_CODE, None)
         return RedirectResponse("/login/code", status_code=303)
 
-    if not secrets.compare_digest(row.code_hash, _hash_code(code.strip())):
+    if not secrets.compare_digest(row.code_hash, hash_code(code.strip())):
         row.attempts += 1
         if row.attempts >= CODE_MAX_ATTEMPTS:
             db.delete(row)
@@ -1028,7 +916,7 @@ def user_login_code_verify(
     request.session["user_id"] = user.id
     request.session["user_name"] = user.username
     request.session["user_version"] = user.session_version
-    return RedirectResponse(_safe_next(pending["next"]), status_code=303)
+    return RedirectResponse(safe_next(pending["next"]), status_code=303)
 
 
 @router.post("/logout")
@@ -1090,7 +978,7 @@ def user_delete_account(
         block = db.scalar(
             select(EmailRegistrationBlock).where(EmailRegistrationBlock.email == email)
         )
-        blocked_until = _now() + timedelta(hours=EMAIL_BLOCK_HOURS)
+        blocked_until = now_naive() + timedelta(hours=EMAIL_BLOCK_HOURS)
         if block is None:
             db.add(
                 EmailRegistrationBlock(

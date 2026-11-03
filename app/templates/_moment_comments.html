@@ -1,0 +1,46 @@
+<section class="moment-comments" id="moment-comments-{{ moment.id }}">
+  {% if moment_notice %}
+    <p><mark>{{ moment_notice }}</mark></p>
+  {% endif %}
+
+  {% if total_comments %}
+    <h2>评论（{{ total_comments }}）</h2>
+    {% if total_comments > approved_comments | length %}
+      <p><small>仅显示最新 {{ approved_comments | length }} 条。</small></p>
+    {% endif %}
+    {% for comment in approved_comments %}
+      <article class="moment-comment">
+        <header>
+          <strong>{{ comment.author_name }}</strong>
+          <small>{{ comment.created_at.strftime("%Y-%m-%d %H:%M") }}</small>
+        </header>
+        <p>{{ comment.content }}</p>
+      </article>
+    {% endfor %}
+  {% endif %}
+
+  {% if commenter %}
+    <p><small>以 {{ commenter }} 的身份评论</small></p>
+    <form method="post" action="{{ url_for('submit_moment_comment', moment_id=moment.id) }}"
+          hx-post="{{ url_for('submit_moment_comment', moment_id=moment.id) }}"
+          hx-target="#moment-comments-{{ moment.id }}" hx-swap="outerHTML"
+          hx-disabled-elt="find button">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+      <input type="hidden" name="page" value="{{ page }}">
+      <div style="display: none;">
+        <label>网站 <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+      </div>
+      <label>
+        评论
+        <textarea name="content" rows="3" maxlength="1000" required></textarea>
+      </label>
+      <button type="submit">提交评论</button>
+    </form>
+  {% else %}
+    {% set moments_next = ("/moments?page=" ~ page ~ "#moment-" ~ moment.id) if page > 1 else ("/moments#moment-" ~ moment.id) %}
+    <p>
+      <a href="{{ url_for('user_login_page') }}?next={{ moments_next | urlencode }}">登录</a>
+      后才能评论。
+    </p>
+  {% endif %}
+</section>

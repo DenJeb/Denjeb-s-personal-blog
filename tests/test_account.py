@@ -13,7 +13,7 @@ from sqlalchemy import delete, select
 from app.db import SessionLocal
 from app.main import app
 from app.models import EmailRegistrationBlock, User, VerificationCode
-from app.routers import account as account_router
+from app.services import accounts as accounts_service
 from tests.utils import csrf_token
 
 EMAIL = "__pytest_account@example.com"
@@ -42,8 +42,8 @@ def _create_user(password: str = PASSWORD) -> None:
 
 
 def _register_and_verify(client, monkeypatch, password: str = PASSWORD) -> None:
-    monkeypatch.setattr(account_router, "_generate_code", lambda: "123456")
-    monkeypatch.setattr(account_router, "send_code", lambda *args, **kwargs: True)
+    monkeypatch.setattr(accounts_service, "generate_code", lambda: "123456")
+    monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
 
     token = csrf_token(client.get("/register").text)
     response = client.post(
@@ -132,8 +132,8 @@ def test_register_duplicate_email(client):
 def test_register_wrong_code(client, monkeypatch):
     _cleanup_user()
     try:
-        monkeypatch.setattr(account_router, "_generate_code", lambda: "123456")
-        monkeypatch.setattr(account_router, "send_code", lambda *args, **kwargs: True)
+        monkeypatch.setattr(accounts_service, "generate_code", lambda: "123456")
+        monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
 
         token = csrf_token(client.get("/register").text)
         response = client.post(
@@ -165,10 +165,10 @@ def test_register_wrong_code(client, monkeypatch):
 def test_register_resend(client, monkeypatch):
     _cleanup_user()
     try:
-        monkeypatch.setattr(account_router, "_generate_code", lambda: "123456")
+        monkeypatch.setattr(accounts_service, "generate_code", lambda: "123456")
         calls = []
         monkeypatch.setattr(
-            account_router,
+            accounts_service,
             "send_code",
             lambda *args, **kwargs: calls.append(args) or True,
         )
@@ -214,8 +214,8 @@ def test_code_login(client, monkeypatch):
     _cleanup_user()
     try:
         _create_user()
-        monkeypatch.setattr(account_router, "_generate_code", lambda: "123456")
-        monkeypatch.setattr(account_router, "send_code", lambda *args, **kwargs: True)
+        monkeypatch.setattr(accounts_service, "generate_code", lambda: "123456")
+        monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
 
         token = csrf_token(client.get("/login/code").text)
         response = client.post(
@@ -240,8 +240,8 @@ def test_code_login(client, monkeypatch):
 
 def test_code_login_unregistered(client, monkeypatch):
     _cleanup_user()
-    monkeypatch.setattr(account_router, "_generate_code", lambda: "123456")
-    monkeypatch.setattr(account_router, "send_code", lambda *args, **kwargs: True)
+    monkeypatch.setattr(accounts_service, "generate_code", lambda: "123456")
+    monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
 
     token = csrf_token(client.get("/login/code").text)
     response = client.post(
@@ -257,8 +257,8 @@ def test_code_login_wrong_code(client, monkeypatch):
     _cleanup_user()
     try:
         _create_user()
-        monkeypatch.setattr(account_router, "_generate_code", lambda: "123456")
-        monkeypatch.setattr(account_router, "send_code", lambda *args, **kwargs: True)
+        monkeypatch.setattr(accounts_service, "generate_code", lambda: "123456")
+        monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
 
         token = csrf_token(client.get("/login/code").text)
         client.post(
@@ -306,8 +306,8 @@ def test_password_reset(client, monkeypatch):
     _cleanup_user()
     try:
         _create_user()
-        monkeypatch.setattr(account_router, "_generate_code", lambda: "123456")
-        monkeypatch.setattr(account_router, "send_code", lambda *args, **kwargs: True)
+        monkeypatch.setattr(accounts_service, "generate_code", lambda: "123456")
+        monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
 
         token = csrf_token(client.get("/forgot-password").text)
         response = client.post(
@@ -397,8 +397,8 @@ def test_reset_code_is_not_stored_in_session_cookie(client, monkeypatch):
     _cleanup_user()
     try:
         _create_user()
-        monkeypatch.setattr(account_router, "_generate_code", lambda: "123456")
-        monkeypatch.setattr(account_router, "send_code", lambda *args, **kwargs: True)
+        monkeypatch.setattr(accounts_service, "generate_code", lambda: "123456")
+        monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
 
         token = csrf_token(client.get("/forgot-password").text)
         response = client.post(
@@ -434,8 +434,8 @@ def test_reset_code_is_not_stored_in_session_cookie(client, monkeypatch):
 def test_register_code_and_password_hash_not_in_session_cookie(client, monkeypatch):
     _cleanup_user()
     try:
-        monkeypatch.setattr(account_router, "_generate_code", lambda: "654321")
-        monkeypatch.setattr(account_router, "send_code", lambda *args, **kwargs: True)
+        monkeypatch.setattr(accounts_service, "generate_code", lambda: "654321")
+        monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
 
         token = csrf_token(client.get("/register").text)
         response = client.post(
@@ -475,8 +475,8 @@ def test_login_code_is_not_stored_in_session_cookie(client, monkeypatch):
     _cleanup_user()
     try:
         _create_user()
-        monkeypatch.setattr(account_router, "_generate_code", lambda: "112233")
-        monkeypatch.setattr(account_router, "send_code", lambda *args, **kwargs: True)
+        monkeypatch.setattr(accounts_service, "generate_code", lambda: "112233")
+        monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
 
         token = csrf_token(client.get("/login/code").text)
         response = client.post(
@@ -544,8 +544,8 @@ def _login_deleted_user(client) -> None:
 
 def test_self_delete_blocks_email_for_24_hours(monkeypatch):
     _cleanup_deleted_user()
-    monkeypatch.setattr(account_router, "_generate_code", lambda: "778899")
-    monkeypatch.setattr(account_router, "send_code", lambda *args, **kwargs: True)
+    monkeypatch.setattr(accounts_service, "generate_code", lambda: "778899")
+    monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
     try:
         _create_deleted_user()
         with TestClient(app) as client:
@@ -650,8 +650,8 @@ def test_deleted_user_session_is_cleared(monkeypatch):
 
 def test_password_reset_invalidates_existing_sessions(monkeypatch):
     _cleanup_deleted_user()
-    monkeypatch.setattr(account_router, "_generate_code", lambda: "445566")
-    monkeypatch.setattr(account_router, "send_code", lambda *args, **kwargs: True)
+    monkeypatch.setattr(accounts_service, "generate_code", lambda: "445566")
+    monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: True)
     try:
         _create_deleted_user()
         with TestClient(app) as client:
