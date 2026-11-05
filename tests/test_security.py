@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.config import settings
 from app.db import SessionLocal
 from app.models import AdminUser
+from app.services import accounts as accounts_service
 from tests.conftest import ADMIN_EMAIL, ADMIN_PASSWORD
 from tests.utils import csrf_token
 
@@ -152,6 +153,7 @@ def test_wrong_totp_code_rejected(admin_client, client):
 
 def test_admin_login_requires_email_code(admin_client, client):
     login_page = client.get("/admin/login")
+    assert "发送验证码" in login_page.text
     token = csrf_token(login_page.text)
     response = client.post(
         "/admin/login",
@@ -192,7 +194,10 @@ def test_admin_login_requires_email_code(admin_client, client):
     assert client.get("/admin/").status_code == 200
 
 
-def test_admin_login_code_resend(admin_client, client):
+def test_admin_login_code_resend(admin_client, client, monkeypatch):
+    codes = iter(["111111", "222222"])
+    monkeypatch.setattr(accounts_service, "generate_code", lambda: next(codes))
+
     login_page = client.get("/admin/login")
     token = csrf_token(login_page.text)
     response = client.post(
@@ -220,19 +225,222 @@ def test_admin_login_code_resend(admin_client, client):
     assert "新的验证码已发送" in resent_page.text
 
     token = csrf_token(resent_page.text)
+    old_code = client.post(
+        "/admin/login/code",
+        data={"csrf_token": token, "code": "111111"},
+        follow_redirects=False,
+    )
+    assert old_code.status_code == 400
+
     response = client.post(
         "/admin/login/code",
-        data={"csrf_token": token, "code": "123456"},
+        data={"csrf_token": token, "code": "222222"},
         follow_redirects=False,
     )
     assert response.status_code == 303
     assert response.headers["location"] == "/admin/"
 
 
+def test_admin_login_code_send_failure(admin_client, client, monkeypatch):
+    monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: False)
+
+    login_page = client.get("/admin/login")
+    token = csrf_token(login_page.text)
+    response = client.post(
+        "/admin/login",
+        data={
+            "csrf_token": token,
+            "username": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD,
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 503
+    assert "验证码发送失败" in response.text
+    assert client.get("/admin/", follow_redirects=False).headers["location"] == (
+        "/admin/login"
+    )
+
+
+def test_failed_code_sends_count_toward_limit(admin_client, client, monkeypatch):
+    monkeypatch.setattr(accounts_service, "send_code", lambda *args, **kwargs: False)
+
+    token = csrf_token(client.get("/admin/login").text)
+    for _ in range(5):
+        response = client.post(
+            "/admin/login",
+            data={
+                "csrf_token": token,
+                "username": ADMIN_EMAIL,
+                "password": ADMIN_PASSWORD,
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 503
+
+    response = client.post(
+        "/admin/login",
+        data={
+            "csrf_token": token,
+            "username": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD,
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 429
+
+
+def test_admin_login_code_falls_back_to_totp_when_send_fails(
+    admin_client, client, monkeypatch
+):
+    _clear_totp()
+    try:
+        with SessionLocal() as db:
+            admin = db.scalar(select(AdminUser).where(AdminUser.email == ADMIN_EMAIL))
+            assert admin is not None
+            admin.totp_secret = pyotp.random_base32()
+            db.commit()
+
+        monkeypatch.setattr(
+            accounts_service, "send_code", lambda *args, **kwargs: False
+        )
+
+        login_page = client.get("/admin/login")
+        token = csrf_token(login_page.text)
+        response = client.post(
+            "/admin/login",
+            data={
+                "csrf_token": token,
+                "username": ADMIN_EMAIL,
+                "password": ADMIN_PASSWORD,
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/login/totp"
+    finally:
+        _clear_totp()
+
+
+def test_admin_login_code_cancel(admin_client, client):
+    login_page = client.get("/admin/login")
+    token = csrf_token(login_page.text)
+    response = client.post(
+        "/admin/login",
+        data={
+            "csrf_token": token,
+            "username": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD,
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    code_page = client.get("/admin/login/code")
+    token = csrf_token(code_page.text)
+    response = client.post(
+        "/admin/login/code/cancel",
+        data={"csrf_token": token},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/login"
+    assert client.get("/admin/login").status_code == 200
+
+    stale = client.post(
+        "/admin/login/code",
+        data={"csrf_token": token, "code": "123456"},
+        follow_redirects=False,
+    )
+    assert stale.status_code == 303
+    assert stale.headers["location"] == "/admin/login"
+
+
+def test_admin_login_code_resend_revalidates_admin(admin_client, client, monkeypatch):
+    sent = []
+    monkeypatch.setattr(
+        accounts_service,
+        "send_code",
+        lambda *args, **kwargs: sent.append(True) or True,
+    )
+
+    login_page = client.get("/admin/login")
+    token = csrf_token(login_page.text)
+    response = client.post(
+        "/admin/login",
+        data={
+            "csrf_token": token,
+            "username": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD,
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    with SessionLocal() as db:
+        admin = db.scalar(select(AdminUser).where(AdminUser.email == ADMIN_EMAIL))
+        assert admin is not None
+        admin.session_version += 1
+        db.commit()
+
+    sent.clear()
+    code_page = client.get("/admin/login/code")
+    token = csrf_token(code_page.text)
+    response = client.post(
+        "/admin/login/code/resend",
+        data={"csrf_token": token},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/login"
+    assert sent == []
+
+
+def test_admin_login_code_attempts_exhausted(admin_client, client):
+    login_page = client.get("/admin/login")
+    token = csrf_token(login_page.text)
+    response = client.post(
+        "/admin/login",
+        data={
+            "csrf_token": token,
+            "username": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD,
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    code_page = client.get("/admin/login/code")
+    token = csrf_token(code_page.text)
+    for index in range(5):
+        response = client.post(
+            "/admin/login/code",
+            data={"csrf_token": token, "code": "000000"},
+            follow_redirects=False,
+        )
+        if index < 4:
+            assert response.status_code == 400
+        else:
+            assert response.status_code == 303
+            assert response.headers["location"] == "/admin/login"
+
+    stale = client.post(
+        "/admin/login/code",
+        data={"csrf_token": token, "code": "123456"},
+        follow_redirects=False,
+    )
+    assert stale.status_code == 303
+    assert stale.headers["location"] == "/admin/login"
+    assert client.get("/admin/", follow_redirects=False).headers["location"] == (
+        "/admin/login"
+    )
+
+
 def test_admin_login_code_can_be_disabled(admin_client, client, monkeypatch):
     monkeypatch.setattr(settings, "admin_login_code_enabled", False)
 
     login_page = client.get("/admin/login")
+    assert "发送验证码" not in login_page.text
     token = csrf_token(login_page.text)
     response = client.post(
         "/admin/login",

@@ -9,7 +9,7 @@
 {% block content %}
   <hgroup>
     <h1>邮箱验证</h1>
-    <p>验证码已发送到管理员邮箱，10 分钟内有效。</p>
+    <p>请输入管理员邮箱收到的 6 位验证码，10 分钟内有效。</p>
   </hgroup>
 
   {% if error %}
@@ -36,5 +36,8 @@
     <button type="submit" class="secondary outline">重新发送验证码</button>
   </form>
 
-  <p><small><a href="{{ url_for('login_page') }}">返回登录</a></small></p>
+  <form method="post" action="{{ url_for('login_code_cancel') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <button type="submit" class="secondary outline">取消并返回登录</button>
+  </form>
 {% endblock %}

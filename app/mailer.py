@@ -16,10 +16,6 @@ def _is_test_recipient(to: str) -> bool:
 
 
 def send_email(to: str, subject: str, body: str) -> bool:
-    if _is_test_recipient(to):
-        print(f"[mail] 跳过测试收件地址：{to}")
-        return False
-
     if not settings.email_enabled:
         if settings.debug:
             print(f"[DEV] email to {to}: {subject}\n{body}")
@@ -32,6 +28,10 @@ def send_email(to: str, subject: str, body: str) -> bool:
             print(f"[DEV] email to {to}: {subject}\n{body}")
             return True
         print("[mail] SMTP 未配置，跳过邮件。")
+        return False
+
+    if _is_test_recipient(to):
+        print(f"[mail] 跳过测试收件地址：{to}")
         return False
 
     message = EmailMessage()

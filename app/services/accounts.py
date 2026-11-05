@@ -10,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import StaleDataError
 
 from app.config import settings
 from app.mailer import send_code
@@ -119,6 +120,29 @@ def load_pending_code(
         db.commit()
         return None
     return row
+
+
+def code_matches(row: VerificationCode, code: str) -> bool:
+    return secrets.compare_digest(row.code_hash, hash_code(code.strip()))
+
+
+def record_failed_code_attempt(db: Session, row: VerificationCode) -> bool:
+    """记录一次验证码错误尝试，返回 True 表示该验证码已失效。"""
+    row.attempts += 1
+    if row.attempts >= CODE_MAX_ATTEMPTS:
+        db.delete(row)
+        try:
+            db.commit()
+        except StaleDataError:
+            db.rollback()
+        return True
+
+    try:
+        db.commit()
+    except StaleDataError:
+        db.rollback()
+        return True
+    return False
 
 
 def registration_is_blocked(db: Session, email: str) -> bool:

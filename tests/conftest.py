@@ -41,6 +41,7 @@ _test_url_string = _test_url.render_as_string(hide_password=False)
 settings.database_url = _test_url_string
 settings.admin_email = TEST_ADMIN_EMAIL
 settings.email_enabled = False
+settings.admin_login_code_enabled = True
 os.environ["DATABASE_URL"] = _test_url_string
 
 from app.db import Base, SessionLocal, engine  # noqa: E402

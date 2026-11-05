@@ -3,7 +3,6 @@
 """
 
 import re
-import secrets
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -20,14 +19,14 @@ from app.deps import DbSession
 from app.models import EmailRegistrationBlock, User, VerificationCode
 from app.rate_limit import clear_bucket, is_rate_limited, record_event
 from app.services.accounts import (
-    CODE_MAX_ATTEMPTS,
     EMAIL_BLOCK_HOURS,
     PURPOSE_LOGIN_CODE,
     PURPOSE_REGISTER,
     PURPOSE_RESET,
-    hash_code,
+    code_matches,
     load_pending_code,
     now_naive,
+    record_failed_code_attempt,
     registration_is_blocked,
     safe_next,
     send_verification_code,
@@ -293,15 +292,11 @@ def user_register_verify(
         request.session.pop(SESSION_REGISTER, None)
         return RedirectResponse("/register", status_code=303)
 
-    if not secrets.compare_digest(row.code_hash, hash_code(code.strip())):
-        row.attempts += 1
-        if row.attempts >= CODE_MAX_ATTEMPTS:
-            db.delete(row)
-            db.commit()
+    if not code_matches(row, code):
+        if record_failed_code_attempt(db, row):
             request.session.pop(SESSION_REGISTER, None)
             return RedirectResponse("/register", status_code=303)
 
-        db.commit()
         return templates.TemplateResponse(
             request=request,
             name="account/verify.html",
@@ -547,15 +542,11 @@ def user_reset_password(
         request.session.pop(SESSION_RESET, None)
         return RedirectResponse("/forgot-password", status_code=303)
 
-    if not secrets.compare_digest(row.code_hash, hash_code(code.strip())):
-        row.attempts += 1
-        if row.attempts >= CODE_MAX_ATTEMPTS:
-            db.delete(row)
-            db.commit()
+    if not code_matches(row, code):
+        if record_failed_code_attempt(db, row):
             request.session.pop(SESSION_RESET, None)
             return RedirectResponse("/forgot-password", status_code=303)
 
-        db.commit()
         return templates.TemplateResponse(
             request=request,
             name="account/reset_password.html",
@@ -858,15 +849,11 @@ def user_login_code_verify(
         request.session.pop(SESSION_LOGIN_CODE, None)
         return RedirectResponse("/login/code", status_code=303)
 
-    if not secrets.compare_digest(row.code_hash, hash_code(code.strip())):
-        row.attempts += 1
-        if row.attempts >= CODE_MAX_ATTEMPTS:
-            db.delete(row)
-            db.commit()
+    if not code_matches(row, code):
+        if record_failed_code_attempt(db, row):
             request.session.pop(SESSION_LOGIN_CODE, None)
             return RedirectResponse("/login/code", status_code=303)
 
-        db.commit()
         return templates.TemplateResponse(
             request=request,
             name="account/login_code.html",

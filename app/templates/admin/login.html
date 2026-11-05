@@ -9,7 +9,7 @@
 {% block content %}
   <hgroup>
     <h1>后台登录</h1>
-    <p>邮箱 + 密码验证后，还会向管理员邮箱发送验证码。</p>
+    <p>{% if code_enabled %}邮箱 + 密码验证后，还会向管理员邮箱发送验证码。{% else %}输入管理员邮箱和密码。{% endif %}</p>
   </hgroup>
 
   {% if error %}

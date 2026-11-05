@@ -31,15 +31,34 @@ def test_send_email_disabled(monkeypatch, capsys):
     assert "subject" not in captured.err
 
 
+def test_send_email_debug_prints_without_smtp(monkeypatch, capsys):
+    monkeypatch.setattr(settings, "debug", True)
+    monkeypatch.setattr(settings, "email_enabled", True)
+    monkeypatch.setattr(settings, "smtp_host", "")
+    monkeypatch.setattr(settings, "smtp_user", "")
+    monkeypatch.setattr(settings, "smtp_password", "")
+
+    assert mailer.send_email("admin@example.com", "subject", "body") is True
+
+    captured = capsys.readouterr()
+    assert "subject" in captured.out
+    assert "body" in captured.out
+
+
 def test_send_email_skips_test_recipient(monkeypatch):
     monkeypatch.setattr(settings, "debug", False)
     monkeypatch.setattr(settings, "email_enabled", True)
     monkeypatch.setattr(settings, "smtp_host", "smtp.example.com")
 
+    called = []
+
     def fail_smtp(*args, **kwargs):
+        called.append(True)
         raise AssertionError("测试收件地址不应连接 SMTP")
 
     monkeypatch.setattr(mailer.smtplib, "SMTP", fail_smtp)
+    monkeypatch.setattr(mailer.smtplib, "SMTP_SSL", fail_smtp)
 
     assert mailer.send_email("__pytest_admin@example.com", "subject", "body") is False
     assert mailer.send_email("user@example.org", "subject", "body") is False
+    assert called == []

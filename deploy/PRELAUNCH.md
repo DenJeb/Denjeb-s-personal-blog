@@ -47,4 +47,4 @@
 
 `EMAIL_ENABLED=true` 时，`ADMIN_EMAIL` 必须是真实可收信地址，否则通知会退信。代码会跳过 `@example.com`、`@example.org`、`@example.net` 和 `__pytest` 开头的测试地址。
 
-后台登录验证码依赖 SMTP。SMTP 故障时可临时设置 `ADMIN_LOGIN_CODE_ENABLED=false` 并重启应用作为紧急入口；恢复 SMTP 后应立即改回 `true`。
+后台登录验证码依赖 SMTP。SMTP 故障时，如果管理员已启用 TOTP，系统会自动改用 TOTP 登录；未启用 TOTP 时可临时设置 `ADMIN_LOGIN_CODE_ENABLED=false` 并重启应用作为紧急入口。恢复 SMTP 后应立即改回 `true`。
