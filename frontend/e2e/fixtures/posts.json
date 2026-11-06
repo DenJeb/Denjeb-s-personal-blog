@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "id": 1,
+      "title": "第一篇文章",
+      "slug": "first-post",
+      "url": "http://localhost:3000/posts/first-post",
+      "summary": "这是第一篇文章的摘要。",
+      "published_at": "2026-01-01",
+      "tags": ["FastAPI", "Next.js"],
+      "reading_minutes": 3
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 10,
+    "total": 11,
+    "total_pages": 2,
+    "has_prev": false,
+    "has_next": true
+  }
+}

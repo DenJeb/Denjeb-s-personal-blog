@@ -18,3 +18,7 @@ app/static/uploads/
 *.log
 Thumbs.db
 .DS_Store
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+docs/

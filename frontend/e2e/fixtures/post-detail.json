@@ -1,0 +1,16 @@
+{
+  "id": 1,
+  "title": "Hello World",
+  "slug": "hello-world",
+  "url": "http://localhost:3000/posts/hello-world",
+  "summary": "示例摘要",
+  "published_at": "2026-01-01",
+  "tags": ["FastAPI"],
+  "reading_minutes": 3,
+  "content": "# Hello World\n\n正文",
+  "content_html": "<h2 id=\"intro\">介绍</h2><p>正文</p><ul><li>第一项</li><li>第二项</li></ul><div class=\"highlight\"><pre><span class=\"k\">def</span> hello():\n    pass</pre></div><p><img src=\"/static/uploads/test.webp\" alt=\"test\" /></p>",
+  "toc": [{ "level": 2, "text": "介绍", "id": "intro" }],
+  "previous_post": null,
+  "next_post": null,
+  "related_posts": []
+}

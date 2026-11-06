@@ -1,0 +1,25 @@
+{
+  "total": 1,
+  "years": [
+    {
+      "year": 2026,
+      "months": [
+        {
+          "month": 1,
+          "posts": [
+            {
+              "id": 1,
+              "title": "第一篇文章",
+              "slug": "first-post",
+              "url": "http://localhost:3000/posts/first-post",
+              "summary": "这是第一篇文章的摘要。",
+              "published_at": "2026-01-01",
+              "tags": ["FastAPI", "Next.js"],
+              "reading_minutes": 3
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

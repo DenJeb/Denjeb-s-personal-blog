@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Denjeb 的个人博客</title>
+    <link>http://localhost:3000/</link>
+    <description>记录学习、开发与生活</description>
+  </channel>
+</rss>

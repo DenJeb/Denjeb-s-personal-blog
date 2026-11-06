@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "id": 1,
+      "author_name": "访客",
+      "content": "欢迎来到我的博客",
+      "created_at": "2026-01-04T09:00:00"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 10,
+    "total": 1,
+    "total_pages": 1,
+    "has_prev": false,
+    "has_next": false
+  }
+}
