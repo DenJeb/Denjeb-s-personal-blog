@@ -21,6 +21,7 @@ from app.auth import CurrentAdmin
 from app.config import settings
 from app.csrf import verify_csrf
 from app.deps import DbSession
+from app.markdown import headings_for, render_markdown
 from app.models import BlogPost
 from app.routers.admin.common import (
     PAGE_SIZE,
@@ -29,6 +30,7 @@ from app.routers.admin.common import (
     post_form_values,
     validate_content_fields,
 )
+from app.services.content import reading_minutes
 from app.services.uploads import (
     append_uploaded_image,
     delete_unreferenced_uploads,
@@ -85,6 +87,30 @@ def post_edit_page(request: Request, _admin: CurrentAdmin, post_id: int, db: DbS
             "app_name": settings.app_name,
             "post": post,
             "form": post_form_values(post),
+        },
+    )
+
+
+@router.get("/posts/{post_id}/preview")
+def post_preview(
+    request: Request,
+    _admin: CurrentAdmin,
+    post_id: int,
+    db: DbSession,
+):
+    post = db.get(BlogPost, post_id)
+    if post is None:
+        raise HTTPException(status_code=404, detail="文章不存在！")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/post_preview.html",
+        context={
+            "app_name": settings.app_name,
+            "post": post,
+            "content_html": post.content_html or render_markdown(post.content),
+            "toc": headings_for(post.content),
+            "read_minutes": reading_minutes(post.content),
         },
     )
 

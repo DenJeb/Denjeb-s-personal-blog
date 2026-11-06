@@ -1,0 +1,39 @@
+{% extends "admin/base.html" %}
+
+<!--
+========== 后台文章预览（含草稿/未来文章） ==========
+-->
+
+{% block title %}预览：{{ post.title }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+  <p>
+    <a href="{{ url_for('admin_posts') }}">← 返回文章列表</a> ·
+    <a href="{{ url_for('post_edit_page', post_id=post.id) }}">编辑</a>
+  </p>
+
+  <article>
+    <header>
+      <h1>{{ post.title }}</h1>
+      <p>
+        <small>
+          {{ post.published_at }} · 约 {{ read_minutes }} 分钟 ·
+          {% if post.is_published %}已发布{% else %}草稿{% endif %}
+        </small>
+      </p>
+    </header>
+
+    {% if toc | length >= 2 %}
+      <nav class="post-toc" aria-label="目录">
+        <h2>目录</h2>
+        <ul>
+          {% for item in toc %}
+            <li class="toc-level-{{ item.level }}"><a href="#{{ item.id }}">{{ item.text }}</a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+    {% endif %}
+
+    <div class="markdown-body">{{ content_html | safe }}</div>
+  </article>
+{% endblock %}
