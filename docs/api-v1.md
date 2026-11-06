@@ -1,6 +1,6 @@
 # 公开 API v1
 
-`/api/v1` 是只读 JSON API，供未来的 Next.js 前台或其他客户端使用。现有 Jinja/HTMX 页面继续由 FastAPI 提供，两者共享 `app/services/` 业务逻辑。
+`/api/v1` 是公开只读 JSON API，供 Next.js 前台和外部客户端使用。Jinja/HTMX 页面继续由 FastAPI 提供，两者共享 `app/services/` 业务逻辑。除 `/auth/me` 读取当前 session 外，其余接口不需要登录。
 
 ## 约定
 
@@ -10,12 +10,14 @@
 - 错误：FastAPI 默认格式 `{"detail": "..."}`。
 - 草稿和未来文章不会出现在 API 中，管理员登录也不会绕过。
 - 时间：文章日期为 `YYYY-MM-DD`，评论/动态/留言为 ISO 8601。
+- `/auth/me` 只读取前台用户 session，不返回管理员身份；管理员草稿预览仍是 `/admin/posts/{id}/preview` 的 HTML 路由，不在 API 中。
 
 ## 接口
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/api/v1/site` | 站点名称、作者、对外地址 |
+| GET | `/api/v1/auth/me` | 当前前台登录态；返回 `{"user": {"name": "..."} \| null}` |
 | GET | `/api/v1/posts` | 文章列表；支持 `page`、`per_page`、`tag`、`q` |
 | GET | `/api/v1/posts/{slug-or-id}` | 文章详情，包含正文、HTML、目录、上下篇、相关文章 |
 | GET | `/api/v1/posts/{slug-or-id}/comments` | 已审核评论分页 |

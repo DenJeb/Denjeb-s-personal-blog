@@ -9,6 +9,7 @@
 - Markdown 编辑器、图片上传/WebP 压缩、slug、目录、相关文章、阅读时长。
 - 评论/留言/动态评论 HTMX 局部刷新，无 JavaScript 时仍可提交。
 - 只读 `/api/v1` JSON API；本地 `DEBUG=true` 时可访问 `/docs`。
+- Next.js 16 前台已实现：动态 SSR、Butterfly/Fluid 视觉、文章/动态/留言/搜索/归档；新增 `/api/v1/auth/me` 和管理员草稿预览。
 - CSP nonce、CSRF、数据库限流、评论审核、TOTP、异常日志。
 - 备份、内容导出/恢复、空库恢复演练脚本。
 
@@ -20,7 +21,7 @@
 - [ ] 生产 `.env` 设置：
   - `DEBUG=false`
   - `SESSION_HTTPS_ONLY=true`
-  - `TRUSTED_HOSTS=yourdomain.com,www.yourdomain.com`
+  - `TRUSTED_HOSTS=yourdomain.com,www.yourdomain.com,127.0.0.1`（`127.0.0.1` 给 Next.js 服务端调用；staging 再加 staging 域名）
   - `SITE_URL=https://yourdomain.com`
   - `ADMIN_EMAIL`、`SECRET_KEY`、`DATABASE_URL`
   - `EMAIL_ENABLED=true`、`SMTP_*`
@@ -33,6 +34,9 @@
 - [ ] 安装并启用 `blog-backup.timer`
 - [ ] 用 `python -m app.create_admin --reset-totp` 验证丢失认证器时的恢复路径
 - [ ] 确认 SMTP 故障时可通过服务器修改 `.env`：`ADMIN_LOGIN_CODE_ENABLED=false`，重启后再登录
+- [ ] Next.js 前台：安装 Node.js 24 + npm；在 `frontend/.env.production` 设置 `API_BASE_URL` 和 `NEXT_PUBLIC_SITE_URL`（后者必须在 `npm run build` 前设置），然后 `npm ci && npm run build`
+- [ ] 安装 `deploy/nextjs.service`；按 `deploy/DEPLOY.md` §12 用 `deploy/nginx.staging.conf` 验收 `/api/v1/site`、`/admin`、`/login`、`/rss.xml`
+- [ ] staging 的 FastAPI `.env` 中 `TRUSTED_HOSTS` 加 `127.0.0.1` 和 staging 域名；如果 staging 只用 HTTP，临时 `SESSION_HTTPS_ONLY=false`，正式切换恢复 `true`
 
 ## 等 HTTPS 上线后再打开
 
@@ -41,7 +45,7 @@
 - `SESSION_HTTPS_ONLY=true`：启用后 Session Cookie 变为 `__Host-blog_session`，本地 HTTP 无法登录。
 - 应用层 HSTS：仅在 `SESSION_HTTPS_ONLY=true` 时发送；Nginx 配置已包含 HSTS。
 - `DEBUG=false`：关闭 `/docs`、`/redoc`、`/openapi.json`，这是生产安全设置，不是功能缺失。
-- Next.js 同源反向代理：等 Next 前台真正接入时再切换 Nginx 路由。
+- Next.js 同源反向代理：前端已就绪，按 `deploy/DEPLOY.md` §12 staging 验收后再切换 Nginx `/` 路由；生产 `deploy/nginx.conf` 在验收前保持指向 FastAPI。
 
 ## 注意
 

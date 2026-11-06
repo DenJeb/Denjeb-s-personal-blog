@@ -33,7 +33,7 @@ cp .env.production.example .env
 
 - `DEBUG=false`
 - `SESSION_HTTPS_ONLY=true`
-- `TRUSTED_HOSTS=yourdomain.com,www.yourdomain.com`
+- `TRUSTED_HOSTS=yourdomain.com,www.yourdomain.com,127.0.0.1`（`127.0.0.1` 给 Next.js 服务端调用 FastAPI 用；staging 再加 `staging.yourdomain.com`）
 - `SECRET_KEY` 用随机长串
 - `ADMIN_EMAIL` 填唯一管理员邮箱
 - `SITE_URL=https://yourdomain.com`，用于邮件通知里的链接
@@ -235,3 +235,56 @@ black --check app tests
 ```
 
 GitHub Actions 会在 push / PR 时用 MySQL 8 测试库执行同样的检查；本地未配置 `TEST_DATABASE_URL` 时，`pytest` 默认使用独立的 SQLite 测试文件，不会碰开发库。
+
+## 12. Next.js 前台（staging）
+
+第一阶段只把公开前台切到 Next.js，`/admin`、账户页、`/api`、`/static` 和 feed 仍由 FastAPI 提供。
+
+先安装 Node.js 24 和 npm（例如 NodeSource 或 nvm），然后在 `/srv/blog/frontend` 创建 `.env.production`：
+
+```env
+API_BASE_URL=http://127.0.0.1:8000
+NEXT_PUBLIC_SITE_URL=https://staging.yourdomain.com
+```
+
+> `NEXT_PUBLIC_SITE_URL` 会在 `npm run build` 时内联进产物（canonical、OG、`siteConfig.url`），**必须在 build 之前设置**；只在 systemd 里改它不会生效。`API_BASE_URL` 是运行时变量，可以放在 systemd 环境里。
+
+然后再构建：
+
+```bash
+cd /srv/blog/frontend
+npm ci
+npm run build
+```
+
+同时确认 FastAPI 的 `.env` 里 `TRUSTED_HOSTS` 包含 `127.0.0.1` 和 `staging.yourdomain.com`；否则 Next.js 服务端请求会被 TrustedHostMiddleware 以 400 拒绝。
+
+> staging 的 `nginx.staging.conf` 监听 HTTP 80。如果 FastAPI 的 `SESSION_HTTPS_ONLY=true`，`__Host-` Cookie 在 HTTP 下不可用，后台/账户登录会失败；staging 临时设为 `false`，正式切换前上 TLS 并改回 `true`。
+
+安装 systemd 服务：
+
+```bash
+sudo cp deploy/nextjs.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now nextjs
+```
+
+Nginx 使用 `deploy/nginx.staging.conf`（把域名和路径替换成实际值），只影响 staging：
+
+```bash
+sudo cp deploy/nginx.staging.conf /etc/nginx/sites-available/blog-staging
+sudo ln -s /etc/nginx/sites-available/blog-staging /etc/nginx/sites-enabled/blog-staging
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+验收：
+
+```bash
+curl -s https://staging.yourdomain.com/api/v1/site
+curl -I https://staging.yourdomain.com/
+curl -I https://staging.yourdomain.com/admin
+curl -I https://staging.yourdomain.com/login
+```
+
+`/api/v1/site` 应返回 JSON；`/admin`、`/login` 应返回 FastAPI 的 200/303，而不是 Next.js 404。
+回滚时删除 staging server 的 `/` 反代，或把 `/` 重新指回 `127.0.0.1:8000`；生产 `deploy/nginx.conf` 在验收前不要修改。
