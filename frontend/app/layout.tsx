@@ -58,6 +58,7 @@ export default async function RootLayout({
     <html
       lang="zh-CN"
       data-theme={theme}
+      data-scroll-behavior="smooth"
       className={`${manrope.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">

@@ -27,8 +27,35 @@ const rss = textFixture("rss.xml");
 const sitemap = textFixture("sitemap.xml");
 const robots = textFixture("robots.txt");
 
-const server = createServer((request, response) => {
+const CSRF_TOKEN = "test-csrf";
+const SESSION_COOKIE =
+  "blog_session=test-session; Path=/; HttpOnly; SameSite=Lax";
+const CLEAR_SESSION_COOKIE =
+  "blog_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax";
+
+async function readJsonBody(request) {
+  const chunks = [];
+  for await (const chunk of request) {
+    chunks.push(chunk);
+  }
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function writeCreated(response, message) {
+  response.statusCode = 201;
+  response.end(JSON.stringify({ ok: true, message }));
+}
+
+const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", "http://127.0.0.1:8001");
+  const method = request.method ?? "GET";
+  const cookie = request.headers.cookie ?? "";
+  const loggedIn = cookie.includes("blog_session=");
+  const csrfOk = (request.headers["x-csrf-token"] ?? "") === CSRF_TOKEN;
   response.setHeader("content-type", "application/json; charset=utf-8");
 
   if (url.pathname === "/api/v1/site") {
@@ -36,9 +63,82 @@ const server = createServer((request, response) => {
     return;
   }
 
+  if (url.pathname === "/api/v1/auth/csrf") {
+    response.end(JSON.stringify({ csrf_token: CSRF_TOKEN }));
+    return;
+  }
+
   if (url.pathname === "/api/v1/auth/me") {
-    const loggedIn = (request.headers.cookie ?? "").includes("blog_session=");
     response.end(JSON.stringify(loggedIn ? me : { user: null }));
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/api/v1/auth/login") {
+    const body = await readJsonBody(request);
+    if (body.email === "user@example.com" && body.password === "password") {
+      response.setHeader("set-cookie", SESSION_COOKIE);
+      response.end(JSON.stringify(me));
+    } else {
+      response.statusCode = 400;
+      response.end(JSON.stringify({ detail: "邮箱或密码错误" }));
+    }
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/api/v1/auth/logout") {
+    response.setHeader("set-cookie", CLEAR_SESSION_COOKIE);
+    response.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  if (
+    method === "POST" &&
+    /^\/api\/v1\/posts\/[^/]+\/comments$/.test(url.pathname)
+  ) {
+    if (!loggedIn) {
+      response.statusCode = 401;
+      response.end(JSON.stringify({ detail: "请先登录" }));
+      return;
+    }
+    if (!csrfOk) {
+      response.statusCode = 400;
+      response.end(JSON.stringify({ detail: "CSRF 校验失败" }));
+      return;
+    }
+    writeCreated(response, "评论已提交，审核通过后会显示。");
+    return;
+  }
+
+  if (
+    method === "POST" &&
+    /^\/api\/v1\/moments\/[^/]+\/comments$/.test(url.pathname)
+  ) {
+    if (!loggedIn) {
+      response.statusCode = 401;
+      response.end(JSON.stringify({ detail: "请先登录" }));
+      return;
+    }
+    if (!csrfOk) {
+      response.statusCode = 400;
+      response.end(JSON.stringify({ detail: "CSRF 校验失败" }));
+      return;
+    }
+    writeCreated(response, "评论已提交，审核通过后会显示。");
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/api/v1/guestbook") {
+    if (!loggedIn) {
+      response.statusCode = 401;
+      response.end(JSON.stringify({ detail: "请先登录" }));
+      return;
+    }
+    if (!csrfOk) {
+      response.statusCode = 400;
+      response.end(JSON.stringify({ detail: "CSRF 校验失败" }));
+      return;
+    }
+    writeCreated(response, "留言已提交。");
     return;
   }
 
@@ -66,7 +166,7 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (url.pathname === "/api/v1/guestbook") {
+  if (method === "GET" && url.pathname === "/api/v1/guestbook") {
     response.end(JSON.stringify(guestbook));
     return;
   }
@@ -100,7 +200,10 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (/^\/api\/v1\/posts\/[^/]+\/comments$/.test(url.pathname)) {
+  if (
+    method === "GET" &&
+    /^\/api\/v1\/posts\/[^/]+\/comments$/.test(url.pathname)
+  ) {
     response.end(JSON.stringify(postComments));
     return;
   }

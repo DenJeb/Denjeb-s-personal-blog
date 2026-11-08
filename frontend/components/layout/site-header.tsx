@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentUser, getSiteInfo } from "@/lib/api/fetchers";
 import { loadSiteInfo } from "@/lib/api/load-site-info";
 
+import { LogoutButton } from "./logout-button";
 import { ThemeToggle } from "./theme-toggle";
 
 const navItems = [
@@ -40,9 +41,12 @@ export async function SiteHeader() {
         <div className="header-actions">
           <ThemeToggle />
           {user ? (
-            <Link href="/account" className="btn btn-ghost">
-              {user.name}
-            </Link>
+            <>
+              <Link href="/account" className="btn btn-ghost">
+                {user.name}
+              </Link>
+              <LogoutButton />
+            </>
           ) : (
             <Link href="/login" className="btn btn-ghost">
               登录

@@ -77,6 +77,7 @@ npx playwright test      # 默认：mock API + next dev，使用本机 Edge
 ## 说明
 
 - 第一版是动态 SSR（`cache: "no-store"`），不做 ISR / on-demand revalidation。
-- `/admin`、`/login`、`/register` 等账户页仍由 FastAPI + Jinja2 提供；Nginx 切换前生产环境也直接路由到 FastAPI。
+- `/login` 密码登录页由 Next.js 提供；`/login/code`、`/register`、`/forgot-password`、`/reset-password`、`/account` 仍由 FastAPI + Jinja2 提供。
+- `/admin` 后台仍由 FastAPI + Jinja2 提供；Nginx 切换前生产环境也直接路由到 FastAPI。
 - 文章正文使用后端返回的 `content_html`（`html=False` 渲染），前端不重新解析 Markdown。
 - 设计方向：Butterfly / Fluid 风（深蓝紫渐变、玻璃卡片、hero + 侧栏），阅读页保持窄正文栏。

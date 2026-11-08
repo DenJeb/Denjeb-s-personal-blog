@@ -9,7 +9,7 @@ const proxyPaths = [
   "api",
   "static",
   "admin",
-  "login",
+  "login/code",
   "register",
   "forgot-password",
   "reset-password",

@@ -238,7 +238,7 @@ GitHub Actions 会在 push / PR 时用 MySQL 8 测试库执行同样的检查；
 
 ## 12. Next.js 前台（staging）
 
-第一阶段只把公开前台切到 Next.js，`/admin`、账户页、`/api`、`/static` 和 feed 仍由 FastAPI 提供。
+第一阶段把公开前台和密码登录页 `/login` 切到 Next.js；`/admin`、`/login/code`、注册/找回密码/账户页、`/api`、`/static` 和 feed 仍由 FastAPI 提供。
 
 先安装 Node.js 24 和 npm（例如 NodeSource 或 nvm），然后在 `/srv/blog/frontend` 创建 `.env.production`：
 

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 
+import { WriteForm } from "@/components/forms/write-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
-import { getGuestbook } from "@/lib/api/fetchers";
+import { getCurrentUser, getGuestbook } from "@/lib/api/fetchers";
 import { pageMetadata } from "@/lib/page-metadata";
 import { parsePage } from "@/lib/parse-page";
 
@@ -19,11 +20,26 @@ export default async function GuestbookPage({
 }) {
   const { page: rawPage } = await searchParams;
   const page = parsePage(rawPage);
-  const data = await getGuestbook(page);
+  const [data, user] = await Promise.all([
+    getGuestbook(page),
+    getCurrentUser(),
+  ]);
 
   return (
     <section className="shell">
       <PageHeader title="留言" description="想说的话，留在这里。" />
+
+      <div className="glass guestbook-compose">
+        <WriteForm
+          endpoint="/api/v1/guestbook"
+          maxLength={1000}
+          isLoggedIn={Boolean(user)}
+          nextPath="/guestbook"
+          placeholder="写下想说的话…"
+          buttonLabel="提交留言"
+          loginPrompt="登录后留言"
+        />
+      </div>
 
       {data.items.length === 0 ? (
         <div className="glass empty-state">暂无留言。</div>

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { MomentCard } from "@/components/moments/moment-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
-import { getMoments } from "@/lib/api/fetchers";
+import { getCurrentUser, getMoments } from "@/lib/api/fetchers";
 import { pageMetadata } from "@/lib/page-metadata";
 import { parsePage } from "@/lib/parse-page";
 
@@ -20,7 +20,10 @@ export default async function MomentsPage({
 }) {
   const { page: rawPage } = await searchParams;
   const page = parsePage(rawPage);
-  const data = await getMoments(page);
+  const [data, user] = await Promise.all([
+    getMoments(page),
+    getCurrentUser(),
+  ]);
 
   return (
     <section className="shell">
@@ -34,8 +37,12 @@ export default async function MomentsPage({
       ) : (
         <div className="timeline">
           {data.items.map((moment) => (
-            <div key={moment.id} className="timeline-item">
-              <MomentCard moment={moment} />
+            <div
+              key={moment.id}
+              id={`moment-${moment.id}`}
+              className="timeline-item"
+            >
+              <MomentCard moment={moment} isLoggedIn={Boolean(user)} />
             </div>
           ))}
         </div>

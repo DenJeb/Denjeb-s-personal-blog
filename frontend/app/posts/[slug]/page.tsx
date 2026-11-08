@@ -4,11 +4,12 @@ import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 
 import { CommentList } from "@/components/comments/comment-list";
+import { WriteForm } from "@/components/forms/write-form";
 import { PostBody } from "@/components/post/post-body";
 import { RelatedPosts } from "@/components/post/related-posts";
 import { Toc } from "@/components/post/toc";
 import { Pagination } from "@/components/ui/pagination";
-import { getPost, getPostComments } from "@/lib/api/fetchers";
+import { getCurrentUser, getPost, getPostComments } from "@/lib/api/fetchers";
 import { parsePage } from "@/lib/parse-page";
 import { siteConfig } from "@/lib/site-config";
 
@@ -67,7 +68,10 @@ export default async function PostPage({
   }
 
   const commentPage = parsePage(rawCommentPage);
-  const comments = await getPostComments(post.slug, commentPage);
+  const [comments, user] = await Promise.all([
+    getPostComments(post.slug, commentPage),
+    getCurrentUser(),
+  ]);
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   const jsonLd = {
     "@context": "https://schema.org",
@@ -155,6 +159,15 @@ export default async function PostPage({
             <h2 className="comments-title">
               评论{comments.meta.total > 0 ? `（${comments.meta.total}）` : ""}
             </h2>
+            <WriteForm
+              endpoint={`/api/v1/posts/${encodeURIComponent(post.slug)}/comments`}
+              maxLength={2000}
+              isLoggedIn={Boolean(user)}
+              nextPath={`/posts/${post.slug}#comments`}
+              placeholder="写下你的评论…"
+              buttonLabel="发表评论"
+              loginPrompt="登录后评论"
+            />
             <CommentList comments={comments.items} />
             <Pagination
               page={comments.meta.page}

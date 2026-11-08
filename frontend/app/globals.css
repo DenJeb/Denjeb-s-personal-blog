@@ -14,6 +14,7 @@
   --accent: #8b5cf6;
   --accent-2: #22d3ee;
   --accent-3: #f472b6;
+  --danger: #fb7185;
   --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
   --glow: 0 0 0 1px rgba(139, 92, 246, 0.35),
     0 20px 60px rgba(34, 211, 238, 0.14);
@@ -35,6 +36,7 @@ html[data-theme="light"] {
   --accent: #6d28d9;
   --accent-2: #0891b2;
   --accent-3: #db2777;
+  --danger: #be123c;
   --shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
   --glow: 0 0 0 1px rgba(109, 40, 217, 0.25),
     0 20px 50px rgba(8, 145, 178, 0.12);
@@ -1443,6 +1445,146 @@ html[data-theme="dark"] .markdown-body .mf {
   margin: 1rem 0 0;
   color: var(--muted);
   line-height: 1.8;
+}
+
+/* ---------- auth / write forms ---------- */
+
+.auth-shell {
+  display: grid;
+  place-items: center;
+  min-height: 65vh;
+  padding: 3rem 1.25rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 28rem;
+  padding: 2rem;
+}
+
+.auth-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.auth-subtitle {
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.auth-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.form-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.form-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  outline: none;
+  background: var(--surface-strong);
+  color: var(--text);
+}
+
+.form-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.form-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.form-success {
+  margin: 0;
+  color: var(--accent-2);
+  font-size: 0.85rem;
+}
+
+.auth-form .btn {
+  width: 100%;
+}
+
+.auth-links {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.auth-links a:hover {
+  color: var(--accent-2);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.comment-form {
+  position: relative;
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.comment-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.comment-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.comment-form-hint {
+  color: var(--faint);
+  font-size: 0.75rem;
+}
+
+.comment-login-hint {
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.comment-login-hint > .btn {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.guestbook-compose {
+  padding: 1.2rem 1.25rem;
+  margin-bottom: 1.2rem;
 }
 
 /* ---------- status pages ---------- */

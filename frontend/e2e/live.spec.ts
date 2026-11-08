@@ -21,6 +21,7 @@ test("public pages render against the live API", async ({ page }) => {
     ["/search", "搜索"],
     ["/moments", "动态"],
     ["/guestbook", "留言"],
+    ["/login", "登录"],
     ["/about", "关于"],
   ];
 

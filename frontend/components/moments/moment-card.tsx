@@ -1,8 +1,15 @@
+import { WriteForm } from "@/components/forms/write-form";
 import type { components } from "@/lib/api/schema";
 
 type MomentItem = components["schemas"]["MomentItem"];
 
-export function MomentCard({ moment }: { moment: MomentItem }) {
+export function MomentCard({
+  moment,
+  isLoggedIn,
+}: {
+  moment: MomentItem;
+  isLoggedIn: boolean;
+}) {
   return (
     <article className="glass glass-hover moment-card">
       <time className="moment-date" dateTime={moment.created_at}>
@@ -29,6 +36,16 @@ export function MomentCard({ moment }: { moment: MomentItem }) {
           ))}
         </div>
       ) : null}
+
+      <WriteForm
+        endpoint={`/api/v1/moments/${moment.id}/comments`}
+        maxLength={1000}
+        isLoggedIn={isLoggedIn}
+        nextPath={`/moments#moment-${moment.id}`}
+        placeholder="写下你的评论…"
+        buttonLabel="发表评论"
+        loginPrompt="登录后评论"
+      />
     </article>
   );
 }
