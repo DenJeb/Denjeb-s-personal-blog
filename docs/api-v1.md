@@ -81,10 +81,59 @@ GET /api/v1/posts/bo-ke-kai-zhang-wei-shi-yao-yong-fastapi-jinja2
 - `previous_post` / `next_post`：`{title, slug, url, published_at}` 或 `null`。
 - `related_posts`：文章摘要列表（最多 3 篇）。
 
+## 登录与写入
+
+写请求由浏览器同源直接调用 FastAPI；先获取与当前 session 绑定的 CSRF token：
+
+```http
+GET /api/v1/auth/csrf
+```
+
+```json
+{ "csrf_token": "..." }
+```
+
+登录（成功后 FastAPI 直接返回 `Set-Cookie`）：
+
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+X-CSRF-Token: <csrf_token>
+
+{"email": "denjeb@example.com", "password": "..."}
+```
+
+```json
+{ "user": { "name": "DenJeb" } }
+```
+
+发表评论 / 动态评论 / 留言：
+
+```http
+POST /api/v1/posts/{slug-or-id}/comments
+Content-Type: application/json
+X-CSRF-Token: <csrf_token>
+
+{"content": "写点什么", "website": ""}
+```
+
+```json
+{ "ok": true, "message": "评论已提交，审核通过后会显示。" }
+```
+
+`/api/v1/moments/{id}/comments` 和 `/api/v1/guestbook` 使用同样的 CSRF header 与 `{"content", "website"}` 结构。登出同理：
+
+```http
+POST /api/v1/auth/logout
+X-CSRF-Token: <csrf_token>
+```
+
+失败约定：未登录 401；空内容或 CSRF 失败 400；15 秒内重复提交 429（带 `Retry-After`）。
+
 ## Next.js 接入建议
 
-1. **同源代理**：Nginx 把 `/api/` 转给 FastAPI，其余转给 Next。浏览器只访问 Next，不产生 CORS。
-2. **BFF 转发 Cookie**：以后增加写接口时，Next 服务端转发 FastAPI 的 Session Cookie；不要改成 JWT/localStorage。
+1. **同源代理**：Nginx 把 `/api/` 转给 FastAPI，其余转给 Next。浏览器只访问同源路径，不产生 CORS。
+2. **Cookie 不中转**：登录/登出由浏览器直接请求 FastAPI，`Set-Cookie` 由 FastAPI 返回浏览器；Next 服务端只读 Cookie 做 SSR，不要改成 JWT/localStorage。
 3. **不要跨子域使用 `__Host-` Cookie**：`__Host-blog_session` 要求 Secure、Path=/ 且不能设置 Domain，适合同源路径代理。
 4. **派生数据直接使用**：`content_html`、`toc`、`reading_minutes`、`prev/next`、`related_posts` 都由后端算好，Next 不需要重新实现 Markdown 和目录。
-5. **写接口后续再加**：评论、登录、留言先保持 Jinja 流程；Next 需要时在 `/api/v1` 增加对应 POST 接口，并设计 CSRF header/BFF 方案。
+5. **写接口已接入**：登录/登出、评论、动态评论、留言已提供 JSON API；注册、邮箱验证码、找回密码、账户注销仍走 FastAPI 的 Jinja 页面。

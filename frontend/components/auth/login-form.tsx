@@ -1,12 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { ApiError, postJson } from "@/lib/api/browser";
 
 export function LoginForm({ next }: { next: string }) {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,8 +17,9 @@ export function LoginForm({ next }: { next: string }) {
 
     try {
       await postJson("/api/v1/auth/login", { email, password });
-      router.replace(next);
-      router.refresh();
+      // Full navigation so the server-rendered layout sees the new session
+      // cookie instead of reusing the pre-login client router cache.
+      window.location.assign(next);
     } catch (caught) {
       setError(
         caught instanceof ApiError ? caught.message : "登录失败，请稍后重试。",

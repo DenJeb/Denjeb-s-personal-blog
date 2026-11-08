@@ -26,6 +26,23 @@ test("login and logout update the header", async ({ page }) => {
   await expect(page.getByRole("link", { name: "登录" })).toBeVisible();
 });
 
+test("logout failure shows a retry state", async ({ page, context }) => {
+  await context.addCookies([
+    {
+      name: "blog_session",
+      value: "logout-fail",
+      domain: "127.0.0.1",
+      path: "/",
+    },
+  ]);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "退出" }).click();
+  await expect(
+    page.getByRole("button", { name: "重试退出" }),
+  ).toBeVisible();
+});
+
 test("guest is invited to login before commenting", async ({ page }) => {
   await page.goto("/posts/hello-world#comments");
   await expect(page.getByRole("link", { name: "登录后评论" })).toBeVisible();

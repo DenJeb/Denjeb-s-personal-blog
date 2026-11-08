@@ -4,7 +4,12 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
-from app.csrf import get_csrf_token, verify_csrf_header
+from app.csrf import (
+    clear_csrf_token,
+    get_csrf_token,
+    rotate_csrf_token,
+    verify_csrf_header,
+)
 from app.deps import DbSession
 from app.schemas.auth import (
     CsrfResponse,
@@ -60,6 +65,7 @@ def login(
     request.session["user_id"] = user.id
     request.session["user_name"] = user.username
     request.session["user_version"] = user.session_version
+    rotate_csrf_token(request)
     return CurrentUserResponse(user=CurrentUser(name=user.username))
 
 
@@ -71,4 +77,5 @@ def logout(
     request.session.pop("user_id", None)
     request.session.pop("user_name", None)
     request.session.pop("user_version", None)
+    clear_csrf_token(request)
     return LogoutResponse(ok=True)

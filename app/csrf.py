@@ -18,6 +18,17 @@ def get_csrf_token(request: Request) -> str:
     return token
 
 
+def rotate_csrf_token(request: Request) -> str:
+    """Issue a fresh token after a successful login."""
+    token = secrets.token_urlsafe(32)
+    request.session[CSRF_SESSION_KEY] = token
+    return token
+
+
+def clear_csrf_token(request: Request) -> None:
+    request.session.pop(CSRF_SESSION_KEY, None)
+
+
 def _check(request: Request, submitted: str | None) -> None:
     expected = request.session.get(CSRF_SESSION_KEY)
     if not expected or not submitted or not secrets.compare_digest(expected, submitted):

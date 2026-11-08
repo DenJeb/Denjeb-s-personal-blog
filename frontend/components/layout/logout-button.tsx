@@ -1,23 +1,25 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { postJson } from "@/lib/api/browser";
+import { ApiError, postJson } from "@/lib/api/browser";
 
 export function LogoutButton() {
-  const router = useRouter();
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function logout() {
     setPending(true);
+    setError(null);
     try {
       await postJson("/api/v1/auth/logout", {});
-      router.replace("/");
-      router.refresh();
-    } catch {
-      // Keep the current header if the session already expired or the network
-      // request failed; the user can retry or navigate to /account.
+      // Full reload so the server-rendered header drops the logged-in state.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign("/");
+    } catch (caught) {
+      setError(
+        caught instanceof ApiError ? caught.message : "退出失败，请稍后重试。",
+      );
     } finally {
       setPending(false);
     }
@@ -29,8 +31,9 @@ export function LogoutButton() {
       className="btn btn-ghost"
       onClick={logout}
       disabled={pending}
+      title={error ?? undefined}
     >
-      {pending ? "退出中…" : "退出"}
+      {pending ? "退出中…" : error ? "重试退出" : "退出"}
     </button>
   );
 }

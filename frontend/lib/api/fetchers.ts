@@ -1,6 +1,6 @@
 import "server-only";
 
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 
 import { api } from "./client";
 import type { components } from "./schema";
@@ -28,7 +28,9 @@ export async function getSiteInfo(): Promise<SiteInfo> {
 
 export async function getCurrentUser(): Promise<{ name: string } | null> {
   try {
-    const cookieHeader = (await cookies()).toString();
+    // Forward the raw Cookie header. Re-serializing via cookies().toString()
+    // can change the signed session value, which the backend rejects.
+    const cookieHeader = (await headers()).get("cookie") ?? "";
     const { data } = await api.GET("/api/v1/auth/me", {
       headers: { Cookie: cookieHeader },
       cache: "no-store",

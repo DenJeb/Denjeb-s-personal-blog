@@ -14,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.csrf import verify_csrf
+from app.csrf import clear_csrf_token, rotate_csrf_token, verify_csrf
 from app.deps import DbSession
 from app.models import EmailRegistrationBlock, User, VerificationCode
 from app.rate_limit import is_rate_limited, record_event
@@ -659,6 +659,7 @@ def user_login(
     request.session["user_id"] = user.id
     request.session["user_name"] = user.username
     request.session["user_version"] = user.session_version
+    rotate_csrf_token(request)
     return RedirectResponse(safe_next(next), status_code=303)
 
 
@@ -890,6 +891,7 @@ def user_logout(request: Request, _csrf: None = Depends(verify_csrf)):
     request.session.pop("user_id", None)
     request.session.pop("user_name", None)
     request.session.pop("user_version", None)
+    clear_csrf_token(request)
     return RedirectResponse("/", status_code=303)
 
 

@@ -86,6 +86,11 @@ const server = createServer(async (request, response) => {
   }
 
   if (method === "POST" && url.pathname === "/api/v1/auth/logout") {
+    if (cookie.includes("logout-fail")) {
+      response.statusCode = 500;
+      response.end(JSON.stringify({ detail: "退出失败，请稍后重试。" }));
+      return;
+    }
     response.setHeader("set-cookie", CLEAR_SESSION_COOKIE);
     response.end(JSON.stringify({ ok: true }));
     return;
