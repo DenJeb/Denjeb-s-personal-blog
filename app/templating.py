@@ -2,13 +2,13 @@
 ========== 模板引擎 ==========
 """
 
-import secrets
 from pathlib import Path
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
+from app.csrf import get_csrf_token
 from app.services.content import reading_minutes
 
 APP_DIR = Path(__file__).resolve().parent
@@ -19,11 +19,7 @@ CANONICAL_QUERY_KEYS = {"page", "tag", "q", "comment_page"}
 
 
 def _csrf_token(request: Request) -> str:
-    token = request.session.get("csrf_token")
-    if token is None:
-        token = secrets.token_urlsafe(32)
-        request.session["csrf_token"] = token
-    return token
+    return get_csrf_token(request)
 
 
 def _tag_url(tag: str, page: int | None = None) -> str:

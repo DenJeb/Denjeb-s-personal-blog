@@ -6,19 +6,68 @@ import hashlib
 import hmac
 import re
 import secrets
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
+from pwdlib import PasswordHash
+from pwdlib.exceptions import UnknownHashError
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
 from app.config import settings
 from app.mailer import send_code
-from app.models import EmailRegistrationBlock, VerificationCode
+from app.models import EmailRegistrationBlock, User, VerificationCode
+from app.rate_limit import clear_bucket, is_rate_limited, record_event
 
 CODE_TTL_SECONDS = 600
 CODE_MAX_ATTEMPTS = 5
 EMAIL_BLOCK_HOURS = 24
+LOGIN_WINDOW_SECONDS = 300
+LOGIN_MAX_FAILURES = 5
+_password_hash = PasswordHash.recommended()
+
+
+@dataclass(frozen=True)
+class LoginResult:
+    user: User | None
+    reason: str
+    message: str
+
+
+def _login_bucket(ip: str) -> str:
+    return f"user_login:{ip}"
+
+
+def authenticate_password(
+    db: Session,
+    email: str,
+    password: str,
+    ip: str,
+) -> LoginResult:
+    """Validate an email/password login, applying the DB rate limit."""
+    email = email.strip().lower()
+    if is_rate_limited(db, _login_bucket(ip), LOGIN_WINDOW_SECONDS, LOGIN_MAX_FAILURES):
+        return LoginResult(None, "blocked", "尝试次数过多，请 5 分钟后再试。")
+
+    user = db.scalar(select(User).where(User.email == email))
+    valid = False
+    if user is not None:
+        try:
+            valid = _password_hash.verify(password, user.password_hash)
+        except UnknownHashError:
+            valid = False
+
+    if user is None or not valid:
+        record_event(db, _login_bucket(ip))
+        return LoginResult(None, "invalid", "邮箱或密码错误")
+
+    if not user.is_active:
+        return LoginResult(None, "inactive", "账号已被禁用，请联系管理员。")
+
+    clear_bucket(db, _login_bucket(ip))
+    return LoginResult(user, "ok", "")
+
 
 PURPOSE_REGISTER = "register"
 PURPOSE_LOGIN_CODE = "login_code"

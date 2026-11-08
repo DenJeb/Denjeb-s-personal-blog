@@ -23,6 +23,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.auth import current_admin, current_commenter
 from app.config import settings
 from app.constants import (
     COMMENTS_PER_PAGE,
@@ -35,16 +36,12 @@ from app.csrf import verify_csrf
 from app.deps import DbSession
 from app.markdown import headings_for
 from app.models import (
-    AdminUser,
     BlogPost,
     Comment,
     Message,
     Moment,
     MomentComment,
-    User,
 )
-from app.rate_limit import is_rate_limited, record_event
-from app.services.comments import add_comment, add_message, add_moment_comment
 from app.services.content import (
     adjacent_posts,
     attach_sorted_tags,
@@ -56,6 +53,11 @@ from app.services.content import (
     visible_post_conditions,
     visible_tag_counts,
 )
+from app.services.interactions import (
+    create_comment,
+    create_message,
+    create_moment_comment,
+)
 from app.services.notifications import (
     send_pending as send_pending_notifications,
 )
@@ -63,7 +65,6 @@ from app.templating import templates
 
 router = APIRouter()
 
-COMMENT_COOLDOWN_SECONDS = 15
 AUTHOR_NAME = settings.author_name
 CONTENT_NS = "http://purl.org/rss/1.0/modules/content/"
 ATOM_NS = "http://www.w3.org/2005/Atom"
@@ -78,27 +79,6 @@ def _visible_post_conditions() -> tuple:
 
 def _is_post_public(post: BlogPost) -> bool:
     return is_post_public(post)
-
-
-def _current_admin(request: Request, db: Session) -> AdminUser | None:
-    admin_id = request.session.get("admin_user_id")
-    if admin_id is None:
-        return None
-
-    admin = db.get(AdminUser, admin_id)
-    if (
-        admin is None
-        or (admin.email or "").lower() != settings.admin_email_normalized
-        or request.session.get("admin_version") != admin.session_version
-    ):
-        request.session.pop("admin_user_id", None)
-        request.session.pop("admin_version", None)
-        return None
-    return admin
-
-
-def _admin_logged_in(request: Request, db: Session) -> bool:
-    return _current_admin(request, db) is not None
 
 
 def _post_json_ld(request: Request, post: BlogPost) -> str:
@@ -118,23 +98,6 @@ def _post_json_ld(request: Request, post: BlogPost) -> str:
         "keywords": post.tags or [],
     }
     return json.dumps(data, ensure_ascii=False).replace("<", "\\u003c")
-
-
-def _commenter(
-    request: Request, db: Session
-) -> tuple[str | None, str | None, int | None]:
-    user_id = request.session.get("user_id")
-    if user_id is not None:
-        user = db.get(User, user_id)
-        if user is not None and user.is_active:
-            return user.username, f"user:{user.id}", user.id
-        request.session.pop("user_id", None)
-        request.session.pop("user_name", None)
-
-    admin_user = _current_admin(request, db)
-    if admin_user is not None:
-        return admin_user.username, f"admin:{admin_user.id}", None
-    return None, None, None
 
 
 COMMENT_NOTICES = {
@@ -178,7 +141,7 @@ def _comments_context(
         .offset((comment_page - 1) * COMMENTS_PER_PAGE)
         .limit(COMMENTS_PER_PAGE)
     ).all()
-    commenter, _, _ = _commenter(request, db)
+    commenter, _, _ = current_commenter(request, db)
     return {
         "post": post,
         "comments": comments,
@@ -276,7 +239,7 @@ def _moment_comments_context(
         .order_by(MomentComment.created_at.desc(), MomentComment.id.desc())
         .limit(MOMENT_COMMENTS_SHOWN)
     ).all()
-    commenter, _, _ = _commenter(request, db)
+    commenter, _, _ = current_commenter(request, db)
     return {
         "moment": moment,
         "approved_comments": list(reversed(approved_comments)),
@@ -354,7 +317,7 @@ def post_detail(
 ) -> Response:
     post = find_post(db, post_id)
     if post is None or (
-        not _is_post_public(post) and not _admin_logged_in(request, db)
+        not _is_post_public(post) and current_admin(request, db) is None
     ):
         raise HTTPException(status_code=404, detail="文章不存在！")
 
@@ -403,12 +366,12 @@ def submit_comment(
 ) -> Response:
     post = find_post(db, post_id)
     if post is None or (
-        not _is_post_public(post) and not _admin_logged_in(request, db)
+        not _is_post_public(post) and current_admin(request, db) is None
     ):
         raise HTTPException(status_code=404, detail="文章不存在！")
 
     post_path = f"/posts/{post.slug or post.id}"
-    author, actor_key, user_id = _commenter(request, db)
+    author, actor_key, user_id = current_commenter(request, db)
     if author is None or actor_key is None:
         if _is_htmx(request):
             return _hx_redirect(f"/login?next={post_path}")
@@ -421,29 +384,14 @@ def submit_comment(
             f"{post_path}?comment=submitted#comments", status_code=303
         )
 
-    body = content.strip()
-    if not body:
-        if _is_htmx(request):
-            return _comments_partial(request, db, post, COMMENT_NOTICES["invalid"])
-        return RedirectResponse(
-            f"{post_path}?comment=invalid#comments", status_code=303
-        )
-
-    bucket = f"comment:{actor_key}"
-    if is_rate_limited(db, bucket, COMMENT_COOLDOWN_SECONDS, 1):
-        if _is_htmx(request):
-            return _comments_partial(request, db, post, COMMENT_NOTICES["too_fast"])
-        return RedirectResponse(
-            f"{post_path}?comment=too_fast#comments", status_code=303
-        )
-    record_event(db, bucket)
-
-    add_comment(db, post, author, user_id, body)
-    db.commit()
-    background_tasks.add_task(send_pending_notifications)
+    result = create_comment(db, post, author, actor_key, user_id, content)
+    if result.ok:
+        background_tasks.add_task(send_pending_notifications)
     if _is_htmx(request):
-        return _comments_partial(request, db, post, COMMENT_NOTICES["submitted"])
-    return RedirectResponse(f"{post_path}?comment=submitted#comments", status_code=303)
+        return _comments_partial(request, db, post, result.message)
+    return RedirectResponse(
+        f"{post_path}?comment={result.code}#comments", status_code=303
+    )
 
 
 @router.get("/moments")
@@ -509,7 +457,7 @@ def moments_page(
             ).all()
         )
 
-    commenter, _, _ = _commenter(request, db)
+    commenter, _, _ = current_commenter(request, db)
     return templates.TemplateResponse(
         request=request,
         name="moments.html",
@@ -543,7 +491,7 @@ def submit_moment_comment(
     if moment is None:
         raise HTTPException(status_code=404, detail="动态不存在！")
 
-    author, actor_key, user_id = _commenter(request, db)
+    author, actor_key, user_id = current_commenter(request, db)
     if author is None or actor_key is None:
         next_url = (
             f"/moments?page={page}#moment-{moment_id}"
@@ -566,36 +514,14 @@ def submit_moment_comment(
             f"{target}?{prefix}submitted#moment-{moment_id}", status_code=303
         )
 
-    body = content.strip()
-    if not body:
-        if _is_htmx(request):
-            return _moment_comments_partial(
-                request, db, moment, page, MOMENT_NOTICES["invalid"]
-            )
-        return RedirectResponse(
-            f"{target}?{prefix}invalid#moment-{moment_id}", status_code=303
-        )
-
-    bucket = f"moment_comment:{actor_key}"
-    if is_rate_limited(db, bucket, COMMENT_COOLDOWN_SECONDS, 1):
-        if _is_htmx(request):
-            return _moment_comments_partial(
-                request, db, moment, page, MOMENT_NOTICES["too_fast"]
-            )
-        return RedirectResponse(
-            f"{target}?{prefix}too_fast#moment-{moment_id}", status_code=303
-        )
-    record_event(db, bucket)
-
-    add_moment_comment(db, moment, author, user_id, body)
-    db.commit()
-    background_tasks.add_task(send_pending_notifications)
+    result = create_moment_comment(db, moment, author, actor_key, user_id, content)
+    if result.ok:
+        background_tasks.add_task(send_pending_notifications)
     if _is_htmx(request):
-        return _moment_comments_partial(
-            request, db, moment, page, MOMENT_NOTICES["submitted"]
-        )
+        return _moment_comments_partial(request, db, moment, page, result.message)
     return RedirectResponse(
-        f"{target}?{prefix}submitted#moment-{moment_id}", status_code=303
+        f"{target}?{prefix}{result.code}#moment-{moment_id}",
+        status_code=303,
     )
 
 
@@ -640,25 +566,12 @@ def submit_message(
             return _guestbook_partial(request, db, GUESTBOOK_NOTICES["submitted"])
         return RedirectResponse(f"{target}?message=submitted", status_code=303)
 
-    body = content.strip()
-    if not body:
-        if _is_htmx(request):
-            return _guestbook_partial(request, db, GUESTBOOK_NOTICES["invalid"])
-        return RedirectResponse(f"{target}?message=invalid", status_code=303)
-
-    bucket = f"message:{user.id}"
-    if is_rate_limited(db, bucket, COMMENT_COOLDOWN_SECONDS, 1):
-        if _is_htmx(request):
-            return _guestbook_partial(request, db, GUESTBOOK_NOTICES["too_fast"])
-        return RedirectResponse(f"{target}?message=too_fast", status_code=303)
-    record_event(db, bucket)
-
-    add_message(db, user, body)
-    db.commit()
-    background_tasks.add_task(send_pending_notifications)
+    result = create_message(db, user, content)
+    if result.ok:
+        background_tasks.add_task(send_pending_notifications)
     if _is_htmx(request):
-        return _guestbook_partial(request, db, GUESTBOOK_NOTICES["submitted"])
-    return RedirectResponse(f"{target}?message=submitted", status_code=303)
+        return _guestbook_partial(request, db, result.message)
+    return RedirectResponse(f"{target}?message={result.code}", status_code=303)
 
 
 @router.get("/tags")

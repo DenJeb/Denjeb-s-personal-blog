@@ -17,12 +17,14 @@ from app.config import settings
 from app.csrf import verify_csrf
 from app.deps import DbSession
 from app.models import EmailRegistrationBlock, User, VerificationCode
-from app.rate_limit import clear_bucket, is_rate_limited, record_event
+from app.rate_limit import is_rate_limited, record_event
 from app.services.accounts import (
     EMAIL_BLOCK_HOURS,
+    LOGIN_WINDOW_SECONDS,
     PURPOSE_LOGIN_CODE,
     PURPOSE_REGISTER,
     PURPOSE_RESET,
+    authenticate_password,
     code_matches,
     load_pending_code,
     now_naive,
@@ -37,8 +39,6 @@ from app.templating import templates
 router = APIRouter()
 password_hash = PasswordHash.recommended()
 
-LOGIN_WINDOW_SECONDS = 300
-LOGIN_MAX_FAILURES = 5
 REGISTER_WINDOW_SECONDS = 3600
 REGISTER_MAX = 3
 RESET_WINDOW_SECONDS = 3600
@@ -57,20 +57,6 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
-
-
-def _login_bucket(ip: str) -> str:
-    return f"user_login:{ip}"
-
-
-def _login_is_blocked(db: Session, ip: str) -> bool:
-    return is_rate_limited(
-        db, _login_bucket(ip), LOGIN_WINDOW_SECONDS, LOGIN_MAX_FAILURES
-    )
-
-
-def _record_login_failure(db: Session, ip: str) -> None:
-    record_event(db, _login_bucket(ip))
 
 
 def _register_is_blocked(db: Session, ip: str) -> bool:
@@ -627,13 +613,15 @@ def user_login(
 ):
     email = email.strip().lower()
     ip = _client_ip(request)
-    if _login_is_blocked(db, ip):
+    result = authenticate_password(db, email, password, ip)
+
+    if result.reason == "blocked":
         return templates.TemplateResponse(
             request=request,
             name="account/login.html",
             context={
                 "app_name": settings.app_name,
-                "error": "尝试次数过多，请 5 分钟后再试。",
+                "error": result.message,
                 "email": email,
                 "next": safe_next(next),
             },
@@ -641,42 +629,33 @@ def user_login(
             headers={"Retry-After": str(LOGIN_WINDOW_SECONDS)},
         )
 
-    user = db.scalar(select(User).where(User.email == email))
-    valid = False
-    if user is not None:
-        try:
-            valid = password_hash.verify(password, user.password_hash)
-        except UnknownHashError:
-            valid = False
-
-    if user is None or not valid:
-        _record_login_failure(db, ip)
+    if result.reason == "invalid":
         return templates.TemplateResponse(
             request=request,
             name="account/login.html",
             context={
                 "app_name": settings.app_name,
-                "error": "邮箱或密码错误",
+                "error": result.message,
                 "email": email,
                 "next": safe_next(next),
             },
             status_code=400,
         )
 
-    if not user.is_active:
+    if result.reason == "inactive" or result.user is None:
         return templates.TemplateResponse(
             request=request,
             name="account/login.html",
             context={
                 "app_name": settings.app_name,
-                "error": "账号已被禁用，请联系管理员。",
+                "error": result.message or "账号已被禁用，请联系管理员。",
                 "email": email,
                 "next": safe_next(next),
             },
             status_code=403,
         )
 
-    clear_bucket(db, _login_bucket(ip))
+    user = result.user
     request.session["user_id"] = user.id
     request.session["user_name"] = user.username
     request.session["user_version"] = user.session_version

@@ -1,6 +1,6 @@
 # 公开 API v1
 
-`/api/v1` 是公开只读 JSON API，供 Next.js 前台和外部客户端使用。Jinja/HTMX 页面继续由 FastAPI 提供，两者共享 `app/services/` 业务逻辑。除 `/auth/me` 读取当前 session 外，其余接口不需要登录。
+`/api/v1` 供 Next.js 前台和外部客户端使用。读接口公开；登录态和写接口需要 Session + CSRF。Jinja/HTMX 页面继续由 FastAPI 提供，两者共享 `app/services/` 业务逻辑。
 
 ## 约定
 
@@ -11,6 +11,8 @@
 - 草稿和未来文章不会出现在 API 中，管理员登录也不会绕过。
 - 时间：文章日期为 `YYYY-MM-DD`，评论/动态/留言为 ISO 8601。
 - `/auth/me` 只读取前台用户 session，不返回管理员身份；管理员草稿预览仍是 `/admin/posts/{id}/preview` 的 HTML 路由，不在 API 中。
+- 登录和写请求由浏览器同源直接调用 FastAPI；先 `GET /auth/csrf`，再把 token 放进 `X-CSRF-Token` 头。`Set-Cookie` 由 FastAPI 返回浏览器，不经过 Next.js。
+- 未登录写请求返回 401；空内容或 CSRF 失败返回 400；15 秒内重复提交返回 429。文章/动态评论默认未审核，留言直接展示。
 
 ## 接口
 
@@ -18,6 +20,9 @@
 |---|---|---|
 | GET | `/api/v1/site` | 站点名称、作者、对外地址 |
 | GET | `/api/v1/auth/me` | 当前前台登录态；返回 `{"user": {"name": "..."} \| null}` |
+| GET | `/api/v1/auth/csrf` | 获取与当前 session 绑定的 CSRF token |
+| POST | `/api/v1/auth/login` | 邮箱 + 密码登录；成功设置 Session Cookie |
+| POST | `/api/v1/auth/logout` | 退出当前前台用户 |
 | GET | `/api/v1/posts` | 文章列表；支持 `page`、`per_page`、`tag`、`q` |
 | GET | `/api/v1/posts/{slug-or-id}` | 文章详情，包含正文、HTML、目录、上下篇、相关文章 |
 | GET | `/api/v1/posts/{slug-or-id}/comments` | 已审核评论分页 |
@@ -27,6 +32,9 @@
 | GET | `/api/v1/moments` | 动态及每条的已审核评论 |
 | GET | `/api/v1/guestbook` | 留言分页 |
 | GET | `/api/v1/recent?limit=5` | 最近文章（`limit` 1-20） |
+| POST | `/api/v1/posts/{slug-or-id}/comments` | 发表评论（需登录 + CSRF；审核后展示） |
+| POST | `/api/v1/moments/{id}/comments` | 发表动态评论（需登录 + CSRF；审核后展示） |
+| POST | `/api/v1/guestbook` | 发表留言（需登录 + CSRF） |
 
 ## 文章列表
 
