@@ -139,25 +139,11 @@ sudo systemctl reload nginx
 
 `SESSION_HTTPS_ONLY=true` 时应用会使用 `__Host-blog_session` Cookie。`blog.service` 已经开启 `--proxy-headers`，请保留 Nginx 的 `X-Forwarded-Proto` 头，确保应用生成的绝对链接使用 HTTPS。
 
-### 预留给 Next.js
+### 同源代理（Next.js 已接入）
 
-当前 Nginx 把所有请求代理到 FastAPI。以后接入 Next.js 时，建议保持同源路径代理，不要直接让浏览器跨域调用 FastAPI：
+生产 `deploy/nginx.conf` 已按同源路径分流：公开前台、`/login`、`/admin`、`/admin/posts` 走 Next.js；`/api`、`/static`、后台登录/其余后台页、账户页和 feed 走 FastAPI。浏览器只面对一个域名，Session Cookie、CSRF 和 `__Host-` Cookie 不需要跨域。
 
-```nginx
-location /api/ {
-    proxy_pass http://127.0.0.1:8000;
-}
-
-location /static/ {
-    proxy_pass http://127.0.0.1:8000;
-}
-
-location / {
-    proxy_pass http://127.0.0.1:3000;
-}
-```
-
-这样 `/api/v1`、Session Cookie、CSRF 和 `__Host-` Cookie 都能继续工作；Next 服务端需要转发 FastAPI 的 Cookie，而不是改用 JWT/localStorage。
+切换步骤和回滚方式见 §13；在 staging 验收通过前，不要 reload 生产 Nginx。
 
 ## 7. 防火墙
 
@@ -203,6 +189,11 @@ FLUSH PRIVILEGES;
 ```bash
 curl -I https://yourdomain.com/
 curl https://yourdomain.com/healthz
+curl -I https://yourdomain.com/posts
+curl -I https://yourdomain.com/admin
+curl -I https://yourdomain.com/admin/posts
+curl -I https://yourdomain.com/admin/login
+curl -I https://yourdomain.com/login
 curl -I https://yourdomain.com/static/css/pico.min.css
 ```
 
@@ -210,7 +201,9 @@ curl -I https://yourdomain.com/static/css/pico.min.css
 
 - `/healthz` 返回 `{"status":"ok"}`
 - HTTPS 正常，HTTP 自动跳转
-- 后台 `/admin/login` 可登录
+- `/`、`/posts` 由 Next.js 提供；`/admin`、`/admin/posts` 未登录时显示管理员登录提示
+- `/admin/login` 由 FastAPI 提供，能正常登录
+- `/login` 由 Next.js 提供，密码登录能写入 `__Host-blog_session`
 - 注册验证码能收到邮件
 - 图片上传和显示正常
 - 备份目录生成成功
@@ -224,7 +217,14 @@ git pull
 pip install -r requirements.txt
 alembic upgrade head
 sudo systemctl restart blog
+
+cd /srv/blog/frontend
+npm ci
+npm run build
+sudo systemctl restart nextjs
 ```
+
+`NEXT_PUBLIC_SITE_URL` 只在构建时生效，生产环境更新后必须重新 `npm run build`。
 
 上线前建议先跑：
 
@@ -289,4 +289,96 @@ curl -I https://staging.yourdomain.com/login
 ```
 
 `/api/v1/site` 应返回 JSON；`/admin`、`/admin/posts` 应返回 Next.js 页面（未登录时显示管理员登录提示，登录后显示仪表盘/文章列表）；`/admin/login` 应返回 FastAPI 的 200，而不是 Next.js 404。
-回滚时删除 staging server 的 `/` 反代，或把 `/` 重新指回 `127.0.0.1:8000`；生产 `deploy/nginx.conf` 在验收前不要修改。
+
+staging 回滚时删除 staging server 的 Next 反代，或把 `/` 重新指回 `127.0.0.1:8000`。生产配置已包含 Next.js 路由，切换步骤见 §13。
+
+## 13. 生产切换 Next.js
+
+前置条件：staging 验收通过；数据库已备份；域名 HTTPS 正常；P1/Phase 3a 代码已提交并在 CI 通过。
+
+### 13.1 先启动 Next.js
+
+在 `/srv/blog/frontend` 创建生产环境文件：
+
+```bash
+cd /srv/blog/frontend
+cp .env.production.example .env.production
+```
+
+修改：
+
+```env
+API_BASE_URL=http://127.0.0.1:8000
+NEXT_PUBLIC_SITE_URL=https://yourdomain.com
+```
+
+`NEXT_PUBLIC_SITE_URL` 必须在 build 前设置；`API_BASE_URL` 由 `nextjs.service` 在运行时提供。然后：
+
+```bash
+npm ci
+npm run build
+sudo chown -R www-data:www-data /srv/blog/frontend
+sudo cp /srv/blog/deploy/nextjs.service /etc/systemd/system/nextjs.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now nextjs
+sudo systemctl status nextjs
+```
+
+`nextjs.service` 只监听 `127.0.0.1:3000`；确认 `curl -I http://127.0.0.1:3000/` 返回 200。
+
+### 13.2 切换生产 Nginx
+
+先备份当前能用的配置：
+
+```bash
+sudo cp /etc/nginx/sites-available/blog /etc/nginx/sites-available/blog.bak
+sudo cp /srv/blog/deploy/nginx.conf /etc/nginx/sites-available/blog
+sudo nginx -t
+```
+
+`nginx -t` 必须通过再 reload：
+
+```bash
+sudo systemctl reload nginx
+```
+
+生产 `nginx.conf` 的路由：
+
+| 路径 | 上游 |
+|---|---|
+| `/`、`/login`、`/admin`、`/admin/posts` | Next.js `127.0.0.1:3000` |
+| `/api/`、`/static/`、`/admin/login`、其余 `/admin/*` | FastAPI `127.0.0.1:8000` |
+| `/register`、`/forgot-password`、`/reset-password`、`/account`、`/login/*` | FastAPI `127.0.0.1:8000` |
+
+### 13.3 HTTPS 验收
+
+```bash
+curl -s https://yourdomain.com/api/v1/site
+curl -I https://yourdomain.com/
+curl -I https://yourdomain.com/posts
+curl -I https://yourdomain.com/admin
+curl -I https://yourdomain.com/admin/posts
+curl -I https://yourdomain.com/admin/login
+curl -I https://yourdomain.com/login
+curl -I https://yourdomain.com/rss.xml
+```
+
+必须用真实浏览器再确认：
+
+- `/login` 密码登录成功，Cookie 名为 `__Host-blog_session`
+- 前台评论/留言需要登录并带 CSRF，成功后进入审核
+- `/admin/login` 邮箱 + 密码 + 验证码能登录；`/admin` 显示 Next 仪表盘
+- `/admin/posts` 显示文章列表，编辑链接能打开 FastAPI 的旧编辑页
+- 退出后台仍可在旧后台完成
+- 文章详情、搜索、标签、归档、动态、留言、RSS/sitemap/robots 都正常
+
+### 13.4 回滚
+
+如果 Next.js 入口或 Nginx 分流异常：
+
+```bash
+sudo cp /etc/nginx/sites-available/blog.bak /etc/nginx/sites-available/blog
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+这会把所有流量切回切换前的 FastAPI 配置。Next.js 服务可以保留运行，也可以 `sudo systemctl stop nextjs`。

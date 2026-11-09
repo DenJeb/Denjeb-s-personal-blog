@@ -34,9 +34,12 @@
 - [ ] 安装并启用 `blog-backup.timer`
 - [ ] 用 `python -m app.create_admin --reset-totp` 验证丢失认证器时的恢复路径
 - [ ] 确认 SMTP 故障时可通过服务器修改 `.env`：`ADMIN_LOGIN_CODE_ENABLED=false`，重启后再登录
-- [ ] Next.js 前台：安装 Node.js 24 + npm；在 `frontend/.env.production` 设置 `API_BASE_URL` 和 `NEXT_PUBLIC_SITE_URL`（后者必须在 `npm run build` 前设置），然后 `npm ci && npm run build`
-- [ ] 安装 `deploy/nextjs.service`；按 `deploy/DEPLOY.md` §12 用 `deploy/nginx.staging.conf` 验收 `/api/v1/site`、`/admin`、`/admin/posts`、`/admin/login`、`/login`、`/rss.xml`
+- [ ] Next.js 前端：安装 Node.js 24 + npm；用 `frontend/.env.production.example` 创建 `.env.production`，设置 `API_BASE_URL` 和 `NEXT_PUBLIC_SITE_URL`（后者必须在 `npm run build` 前设置），然后 `npm ci && npm run build`
+- [ ] 安装 `deploy/nextjs.service`（只监听 `127.0.0.1:3000`）；按 `deploy/DEPLOY.md` §12 用 `deploy/nginx.staging.conf` 验收 `/api/v1/site`、`/admin`、`/admin/posts`、`/admin/login`、`/login`、`/rss.xml`
 - [ ] staging 的 FastAPI `.env` 中 `TRUSTED_HOSTS` 加 `127.0.0.1` 和 staging 域名；如果 staging 只用 HTTP，临时 `SESSION_HTTPS_ONLY=false`，正式切换恢复 `true`
+- [ ] 生产切换：备份现有 `/etc/nginx/sites-available/blog`，替换为 `deploy/nginx.conf`，`nginx -t` 通过后再 `reload`；按 `DEPLOY.md` §13 验证
+- [ ] HTTPS 下用真实浏览器验证 `__Host-blog_session`、`/login`、`/admin`、`/admin/posts` 和旧文章编辑页
+- [ ] 生产切换后再次测试注册/重置验证码、后台登录验证码、评论/留言写入和备份生成
 
 ## 等 HTTPS 上线后再打开
 
@@ -45,7 +48,7 @@
 - `SESSION_HTTPS_ONLY=true`：启用后 Session Cookie 变为 `__Host-blog_session`，本地 HTTP 无法登录。
 - 应用层 HSTS：仅在 `SESSION_HTTPS_ONLY=true` 时发送；Nginx 配置已包含 HSTS。
 - `DEBUG=false`：关闭 `/docs`、`/redoc`、`/openapi.json`，这是生产安全设置，不是功能缺失。
-- Next.js 同源反向代理：前端已就绪，按 `deploy/DEPLOY.md` §12 staging 验收后再切换 Nginx `/` 路由；生产 `deploy/nginx.conf` 在验收前保持指向 FastAPI。
+- Next.js 同源反向代理：按 `deploy/DEPLOY.md` §12 完成 staging 验收后，再按 §13 切换生产 Nginx；生产 `deploy/nginx.conf` 已包含 Next 路由，但不要提前 reload。
 
 ## 注意
 

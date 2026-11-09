@@ -11,7 +11,7 @@ Environment=NODE_ENV=production
 Environment=API_BASE_URL=http://127.0.0.1:8000
 # NEXT_PUBLIC_SITE_URL is inlined at build time; set it in frontend/.env.production
 # before `npm run build`. A runtime Environment= entry here would not update it.
-ExecStart=/usr/bin/npm run start -- --port 3000
+ExecStart=/usr/bin/npm run start -- --port 3000 --hostname 127.0.0.1
 Restart=always
 RestartSec=5
 NoNewPrivileges=true
