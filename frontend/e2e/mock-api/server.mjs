@@ -21,6 +21,9 @@ const searchResults = fixture("search-results.json");
 const searchEmpty = fixture("search-empty.json");
 const moments = fixture("moments.json");
 const guestbook = fixture("guestbook.json");
+const adminMe = fixture("admin-me.json");
+const adminDashboard = fixture("admin-dashboard.json");
+const adminPosts = fixture("admin-posts.json");
 const textFixture = (name) =>
   readFileSync(join(dir, "..", "fixtures", name), "utf8");
 const rss = textFixture("rss.xml");
@@ -55,6 +58,7 @@ const server = createServer(async (request, response) => {
   const method = request.method ?? "GET";
   const cookie = request.headers.cookie ?? "";
   const loggedIn = cookie.includes("blog_session=");
+  const adminLoggedIn = cookie.includes("blog_session=admin-session");
   const csrfOk = (request.headers["x-csrf-token"] ?? "") === CSRF_TOKEN;
   response.setHeader("content-type", "application/json; charset=utf-8");
 
@@ -71,6 +75,26 @@ const server = createServer(async (request, response) => {
   if (url.pathname === "/api/v1/auth/me") {
     response.end(JSON.stringify(loggedIn ? me : { user: null }));
     return;
+  }
+
+  if (url.pathname.startsWith("/api/v1/admin/")) {
+    if (!adminLoggedIn) {
+      response.statusCode = 401;
+      response.end(JSON.stringify({ detail: "请先登录后台" }));
+      return;
+    }
+    if (url.pathname === "/api/v1/admin/me") {
+      response.end(JSON.stringify(adminMe));
+      return;
+    }
+    if (url.pathname === "/api/v1/admin/dashboard") {
+      response.end(JSON.stringify(adminDashboard));
+      return;
+    }
+    if (url.pathname === "/api/v1/admin/posts") {
+      response.end(JSON.stringify(adminPosts));
+      return;
+    }
   }
 
   if (method === "POST" && url.pathname === "/api/v1/auth/login") {

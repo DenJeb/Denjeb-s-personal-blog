@@ -53,3 +53,16 @@ def require_admin(request: Request, db: DbSession) -> AdminUser:
 
 
 CurrentAdmin = Annotated[AdminUser, Depends(require_admin)]
+
+
+def require_admin_api(request: Request, db: DbSession) -> AdminUser:
+    admin = current_admin(request, db)
+    if admin is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="请先登录后台",
+        )
+    return admin
+
+
+CurrentAdminApi = Annotated[AdminUser, Depends(require_admin_api)]

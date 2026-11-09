@@ -145,7 +145,7 @@ def list_posts(
     )
 
 
-@router.get("/posts/{identifier}", response_model=PostDetail)
+@router.get("/posts/{identifier}", response_model=PostDetail, name="api_post_detail")
 def post_detail(identifier: str, db: DbSession):
     post = find_post(db, identifier)
     if post is None or not is_post_public(post):

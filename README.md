@@ -26,8 +26,8 @@
 | 💬 **动态** | 记录零碎的想法和日常 |
 | ✍️ **留言** | 登录后在留言板留下想说的话 |
 | 💭 **评论** | 文章和动态都支持评论，审核后展示 |
-| 🔌 **API** | `/api/v1`：读接口公开；登录、评论、留言写入需要 Session + CSRF |
-| ⚙️ **后台** | FastAPI + Jinja2 管理文章、动态、评论、留言和图片；邮箱 + 密码 + 验证码登录，可选 TOTP |
+| 🔌 **API** | `/api/v1`：公开读接口；登录、评论、留言写入需要 Session + CSRF；后台读取需要管理员 Session |
+| ⚙️ **后台** | Next.js 仪表盘与文章列表；文章编辑、审核、用户等其余页面继续使用 FastAPI + Jinja2。邮箱 + 密码 + 验证码登录，可选 TOTP |
 
 ## 技术
 
@@ -37,8 +37,8 @@
 ## 目录
 
 ```
-app/          FastAPI 后端、Jinja2 后台、公开 API
-frontend/     Next.js 前台
+app/          FastAPI 后端、Jinja2 后台、公开与后台 API
+frontend/     Next.js 前台与后台
 deploy/       Nginx、systemd、部署/上线文档
 docs/         API 与设计文档（本地文档，按仓库策略忽略）
 tests/        后端 pytest
@@ -70,8 +70,8 @@ npm run dev
 
 新前台：<http://localhost:3000>
 
-> 当前是 staging 阶段：新设计只在 Next.js 前台（:3000）。
-> FastAPI 的 Jinja2 站点（:8000）和 `/admin`、账户页继续保留，直到 Nginx 切换。
+> 当前是 staging 阶段：新设计在 Next.js 前台（:3000）。
+> Next.js 后台的 `/admin`、`/admin/posts` 已接管仪表盘和文章列表；登录、文章编辑、审核等仍未迁移的页面由 FastAPI 的 Jinja2 站点提供。
 
 环境变量：
 

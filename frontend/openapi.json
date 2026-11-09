@@ -112,8 +112,8 @@
     },
     "/api/v1/posts/{identifier}": {
       "get": {
-        "summary": "Post Detail",
-        "operationId": "post_detail_api_v1_posts__identifier__get",
+        "summary": "Api Post Detail",
+        "operationId": "api_post_detail_api_v1_posts__identifier__get",
         "parameters": [
           {
             "name": "identifier",
@@ -581,8 +581,8 @@
     },
     "/api/v1/auth/me": {
       "get": {
-        "summary": "Me",
-        "operationId": "me_api_v1_auth_me_get",
+        "summary": "Api Me",
+        "operationId": "api_me_api_v1_auth_me_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -599,8 +599,8 @@
     },
     "/api/v1/auth/csrf": {
       "get": {
-        "summary": "Csrf",
-        "operationId": "csrf_api_v1_auth_csrf_get",
+        "summary": "Api Csrf",
+        "operationId": "api_csrf_api_v1_auth_csrf_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -617,8 +617,8 @@
     },
     "/api/v1/auth/login": {
       "post": {
-        "summary": "Login",
-        "operationId": "login_api_v1_auth_login_post",
+        "summary": "Api Login",
+        "operationId": "api_login_api_v1_auth_login_post",
         "parameters": [
           {
             "name": "X-CSRF-Token",
@@ -673,8 +673,8 @@
     },
     "/api/v1/auth/logout": {
       "post": {
-        "summary": "Logout",
-        "operationId": "logout_api_v1_auth_logout_post",
+        "summary": "Api Logout",
+        "operationId": "api_logout_api_v1_auth_logout_post",
         "parameters": [
           {
             "name": "X-CSRF-Token",
@@ -765,6 +765,122 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WriteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/me": {
+      "get": {
+        "summary": "Admin Api Me",
+        "operationId": "admin_api_me_api_v1_admin_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMe"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/dashboard": {
+      "get": {
+        "summary": "Admin Api Dashboard",
+        "operationId": "admin_api_dashboard_api_v1_admin_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDashboard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/posts": {
+      "get": {
+        "summary": "Admin Api Posts",
+        "operationId": "admin_api_posts_api_v1_admin_posts_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPostList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/posts/{post_id}": {
+      "get": {
+        "summary": "Admin Api Post Detail",
+        "operationId": "admin_api_post_detail_api_v1_admin_posts__post_id__get",
+        "parameters": [
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Post Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPostDetail"
                 }
               }
             }
@@ -3657,6 +3773,232 @@
   },
   "components": {
     "schemas": {
+      "AdminDashboard": {
+        "properties": {
+          "post_count": {
+            "type": "integer",
+            "title": "Post Count"
+          },
+          "moment_count": {
+            "type": "integer",
+            "title": "Moment Count"
+          },
+          "message_count": {
+            "type": "integer",
+            "title": "Message Count"
+          },
+          "comment_count": {
+            "type": "integer",
+            "title": "Comment Count"
+          },
+          "moment_comment_count": {
+            "type": "integer",
+            "title": "Moment Comment Count"
+          },
+          "user_count": {
+            "type": "integer",
+            "title": "User Count"
+          },
+          "pending_count": {
+            "type": "integer",
+            "title": "Pending Count"
+          },
+          "moment_pending_count": {
+            "type": "integer",
+            "title": "Moment Pending Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "post_count",
+          "moment_count",
+          "message_count",
+          "comment_count",
+          "moment_comment_count",
+          "user_count",
+          "pending_count",
+          "moment_pending_count"
+        ],
+        "title": "AdminDashboard"
+      },
+      "AdminMe": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username"
+        ],
+        "title": "AdminMe"
+      },
+      "AdminPostDetail": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date",
+            "title": "Published At"
+          },
+          "is_published": {
+            "type": "boolean",
+            "title": "Is Published"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "reading_minutes": {
+            "type": "integer",
+            "title": "Reading Minutes"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "content_html": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Html"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "summary",
+          "published_at",
+          "is_published",
+          "tags",
+          "reading_minutes",
+          "content"
+        ],
+        "title": "AdminPostDetail"
+      },
+      "AdminPostList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPostSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "meta"
+        ],
+        "title": "AdminPostList"
+      },
+      "AdminPostSummary": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "published_at": {
+            "type": "string",
+            "format": "date",
+            "title": "Published At"
+          },
+          "is_published": {
+            "type": "boolean",
+            "title": "Is Published"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "reading_minutes": {
+            "type": "integer",
+            "title": "Reading Minutes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "summary",
+          "published_at",
+          "is_published",
+          "tags",
+          "reading_minutes"
+        ],
+        "title": "AdminPostSummary"
+      },
       "ArchiveMonth": {
         "properties": {
           "month": {

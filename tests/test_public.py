@@ -6,7 +6,7 @@ import json
 import re
 import xml.etree.ElementTree as ET
 from datetime import date
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from fastapi.testclient import TestClient
 from sqlalchemy import delete
@@ -32,6 +32,14 @@ def test_public_pages(client):
         assert response.status_code == 200, path
 
     assert "为什么用 FastAPI" in client.get("/posts/1").text
+
+
+def test_legacy_post_id_redirects_to_public_slug(client):
+    response = client.get("/posts/1", follow_redirects=False)
+    assert response.status_code == 301
+    location = response.headers["location"]
+    assert urlparse(location).path.startswith("/posts/")
+    assert "/api/" not in location
 
 
 def test_rss_and_sitemap(client):

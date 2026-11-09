@@ -23,18 +23,18 @@ from app.services.accounts import LOGIN_WINDOW_SECONDS, authenticate_password
 router = APIRouter()
 
 
-@router.get("/auth/me", response_model=CurrentUserResponse)
+@router.get("/auth/me", response_model=CurrentUserResponse, name="api_me")
 def me(request: Request):
     user = getattr(request.state, "user", None)
     return CurrentUserResponse(user=CurrentUser(name=user.username) if user else None)
 
 
-@router.get("/auth/csrf", response_model=CsrfResponse)
+@router.get("/auth/csrf", response_model=CsrfResponse, name="api_csrf")
 def csrf(request: Request):
     return CsrfResponse(csrf_token=get_csrf_token(request))
 
 
-@router.post("/auth/login", response_model=CurrentUserResponse)
+@router.post("/auth/login", response_model=CurrentUserResponse, name="api_login")
 def login(
     payload: LoginRequest,
     request: Request,
@@ -69,7 +69,7 @@ def login(
     return CurrentUserResponse(user=CurrentUser(name=user.username))
 
 
-@router.post("/auth/logout", response_model=LogoutResponse)
+@router.post("/auth/logout", response_model=LogoutResponse, name="api_logout")
 def logout(
     request: Request,
     _csrf: None = Depends(verify_csrf_header),

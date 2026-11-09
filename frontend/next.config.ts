@@ -35,7 +35,13 @@ const nextConfig: NextConfig = {
     },
   },
   async rewrites() {
-    return rewrites;
+    // Keep these as afterFiles so Next.js admin pages take precedence over
+    // the legacy Jinja admin pages served by FastAPI.
+    return {
+      beforeFiles: [],
+      afterFiles: rewrites,
+      fallback: [],
+    };
   },
   async headers() {
     return [

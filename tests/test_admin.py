@@ -53,6 +53,15 @@ def test_login_page_minimal_layout(client):
     assert "后台登录" in response.text
     assert "归档" not in response.text
     assert 'id="theme-toggle"' in response.text
+    # The form must target the Jinja login route, not /api/v1/auth/login.
+    assert re.search(r'action="[^"]*/admin/login"', response.text)
+
+
+def test_admin_shell_logout_targets_admin_route(admin_client):
+    response = admin_client.get("/admin/")
+    assert response.status_code == 200
+    assert re.search(r'href="[^"]*/admin/"', response.text)
+    assert re.search(r'action="[^"]*/admin/logout"', response.text)
 
 
 def test_login_requires_csrf(client):

@@ -236,9 +236,9 @@ black --check app tests
 
 GitHub Actions 会在 push / PR 时用 MySQL 8 测试库执行同样的检查；本地未配置 `TEST_DATABASE_URL` 时，`pytest` 默认使用独立的 SQLite 测试文件，不会碰开发库。
 
-## 12. Next.js 前台（staging）
+## 12. Next.js 前台与后台（staging）
 
-第一阶段把公开前台和密码登录页 `/login` 切到 Next.js；`/admin`、`/login/code`、注册/找回密码/账户页、`/api`、`/static` 和 feed 仍由 FastAPI 提供。
+公开前台、密码登录页 `/login`、后台仪表盘 `/admin` 和文章列表 `/admin/posts` 已切到 Next.js；后台登录 `/admin/login`、文章编辑/审核/用户等剩余后台页、`/login/code`、注册/找回密码/账户页、`/api`、`/static` 和 feed 仍由 FastAPI 提供。
 
 先安装 Node.js 24 和 npm（例如 NodeSource 或 nvm），然后在 `/srv/blog/frontend` 创建 `.env.production`：
 
@@ -283,8 +283,10 @@ sudo nginx -t && sudo systemctl reload nginx
 curl -s https://staging.yourdomain.com/api/v1/site
 curl -I https://staging.yourdomain.com/
 curl -I https://staging.yourdomain.com/admin
+curl -I https://staging.yourdomain.com/admin/posts
+curl -I https://staging.yourdomain.com/admin/login
 curl -I https://staging.yourdomain.com/login
 ```
 
-`/api/v1/site` 应返回 JSON；`/admin`、`/login` 应返回 FastAPI 的 200/303，而不是 Next.js 404。
+`/api/v1/site` 应返回 JSON；`/admin`、`/admin/posts` 应返回 Next.js 页面（未登录时显示管理员登录提示，登录后显示仪表盘/文章列表）；`/admin/login` 应返回 FastAPI 的 200，而不是 Next.js 404。
 回滚时删除 staging server 的 `/` 反代，或把 `/` 重新指回 `127.0.0.1:8000`；生产 `deploy/nginx.conf` 在验收前不要修改。

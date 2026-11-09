@@ -35,7 +35,7 @@
 - [ ] 用 `python -m app.create_admin --reset-totp` 验证丢失认证器时的恢复路径
 - [ ] 确认 SMTP 故障时可通过服务器修改 `.env`：`ADMIN_LOGIN_CODE_ENABLED=false`，重启后再登录
 - [ ] Next.js 前台：安装 Node.js 24 + npm；在 `frontend/.env.production` 设置 `API_BASE_URL` 和 `NEXT_PUBLIC_SITE_URL`（后者必须在 `npm run build` 前设置），然后 `npm ci && npm run build`
-- [ ] 安装 `deploy/nextjs.service`；按 `deploy/DEPLOY.md` §12 用 `deploy/nginx.staging.conf` 验收 `/api/v1/site`、`/admin`、`/login`、`/rss.xml`
+- [ ] 安装 `deploy/nextjs.service`；按 `deploy/DEPLOY.md` §12 用 `deploy/nginx.staging.conf` 验收 `/api/v1/site`、`/admin`、`/admin/posts`、`/admin/login`、`/login`、`/rss.xml`
 - [ ] staging 的 FastAPI `.env` 中 `TRUSTED_HOSTS` 加 `127.0.0.1` 和 staging 域名；如果 staging 只用 HTTP，临时 `SESSION_HTTPS_ONLY=false`，正式切换恢复 `true`
 
 ## 等 HTTPS 上线后再打开

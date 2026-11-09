@@ -45,8 +45,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Post Detail */
-        get: operations["post_detail_api_v1_posts__identifier__get"];
+        /** Api Post Detail */
+        get: operations["api_post_detail_api_v1_posts__identifier__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -183,8 +183,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Me */
-        get: operations["me_api_v1_auth_me_get"];
+        /** Api Me */
+        get: operations["api_me_api_v1_auth_me_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -200,8 +200,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Csrf */
-        get: operations["csrf_api_v1_auth_csrf_get"];
+        /** Api Csrf */
+        get: operations["api_csrf_api_v1_auth_csrf_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -219,8 +219,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Login */
-        post: operations["login_api_v1_auth_login_post"];
+        /** Api Login */
+        post: operations["api_login_api_v1_auth_login_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -236,8 +236,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Logout */
-        post: operations["logout_api_v1_auth_logout_post"];
+        /** Api Logout */
+        post: operations["api_logout_api_v1_auth_logout_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -255,6 +255,74 @@ export interface paths {
         put?: never;
         /** Moment Comment */
         post: operations["moment_comment_api_v1_moments__moment_id__comments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Api Me */
+        get: operations["admin_api_me_api_v1_admin_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Api Dashboard */
+        get: operations["admin_api_dashboard_api_v1_admin_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Api Posts */
+        get: operations["admin_api_posts_api_v1_admin_posts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/posts/{post_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Api Post Detail */
+        get: operations["admin_api_post_detail_api_v1_admin_posts__post_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1305,6 +1373,86 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminDashboard */
+        AdminDashboard: {
+            /** Post Count */
+            post_count: number;
+            /** Moment Count */
+            moment_count: number;
+            /** Message Count */
+            message_count: number;
+            /** Comment Count */
+            comment_count: number;
+            /** Moment Comment Count */
+            moment_comment_count: number;
+            /** User Count */
+            user_count: number;
+            /** Pending Count */
+            pending_count: number;
+            /** Moment Pending Count */
+            moment_pending_count: number;
+        };
+        /** AdminMe */
+        AdminMe: {
+            /** Username */
+            username: string;
+            /** Email */
+            email?: string | null;
+        };
+        /** AdminPostDetail */
+        AdminPostDetail: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** Slug */
+            slug: string | null;
+            /** Summary */
+            summary: string;
+            /**
+             * Published At
+             * Format: date
+             */
+            published_at: string;
+            /** Is Published */
+            is_published: boolean;
+            /** Tags */
+            tags: string[];
+            /** Reading Minutes */
+            reading_minutes: number;
+            /** Content */
+            content: string;
+            /** Content Html */
+            content_html?: string | null;
+        };
+        /** AdminPostList */
+        AdminPostList: {
+            /** Items */
+            items: components["schemas"]["AdminPostSummary"][];
+            meta: components["schemas"]["PageMeta"];
+        };
+        /** AdminPostSummary */
+        AdminPostSummary: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+            /** Slug */
+            slug: string | null;
+            /** Summary */
+            summary: string;
+            /**
+             * Published At
+             * Format: date
+             */
+            published_at: string;
+            /** Is Published */
+            is_published: boolean;
+            /** Tags */
+            tags: string[];
+            /** Reading Minutes */
+            reading_minutes: number;
+        };
         /** ArchiveMonth */
         ArchiveMonth: {
             /** Month */
@@ -2019,7 +2167,7 @@ export interface operations {
             };
         };
     };
-    post_detail_api_v1_posts__identifier__get: {
+    api_post_detail_api_v1_posts__identifier__get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2324,7 +2472,7 @@ export interface operations {
             };
         };
     };
-    me_api_v1_auth_me_get: {
+    api_me_api_v1_auth_me_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2344,7 +2492,7 @@ export interface operations {
             };
         };
     };
-    csrf_api_v1_auth_csrf_get: {
+    api_csrf_api_v1_auth_csrf_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2364,7 +2512,7 @@ export interface operations {
             };
         };
     };
-    login_api_v1_auth_login_post: {
+    api_login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
             header?: {
@@ -2399,7 +2547,7 @@ export interface operations {
             };
         };
     };
-    logout_api_v1_auth_logout_post: {
+    api_logout_api_v1_auth_logout_post: {
         parameters: {
             query?: never;
             header?: {
@@ -2454,6 +2602,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WriteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_api_me_api_v1_admin_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMe"];
+                };
+            };
+        };
+    };
+    admin_api_dashboard_api_v1_admin_dashboard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminDashboard"];
+                };
+            };
+        };
+    };
+    admin_api_posts_api_v1_admin_posts_get: {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPostList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_api_post_detail_api_v1_admin_posts__post_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                post_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPostDetail"];
                 };
             };
             /** @description Validation Error */
