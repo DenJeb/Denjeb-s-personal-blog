@@ -2,64 +2,91 @@
 
 # Denjeb 的个人博客
 
-**记录文章、想法和日常**
+**记录学习、开发与生活**
 
-![Version](https://img.shields.io/badge/version-1.6.0-blue)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.162-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white&style=flat-square)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black&style=flat-square)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white&style=flat-square)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white&style=flat-square)](https://tailwindcss.com/)
+<br />
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.162-009688?logo=fastapi&logoColor=white&style=flat-square)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white&style=flat-square)](https://www.python.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white&style=flat-square)](https://www.mysql.com/)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.1-D71F00?logo=sqlalchemy&logoColor=white&style=flat-square)](https://www.sqlalchemy.org/)
+[![Nginx](https://img.shields.io/badge/Nginx-1.24-009639?logo=nginx&logoColor=white&style=flat-square)](https://nginx.org/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=flat-square)](LICENSE)
 
 </div>
 
 ---
 
-一个前后端分离的个人博客：**Next.js 16 前台 + FastAPI 后端**。
+一个前后端分离的个人博客：**Next.js 16 前台 + FastAPI 后端**。  
 用 Markdown 写文章，记录零碎的想法，也欢迎留下评论和留言。
 
-## 这里有什么
+## 功能
 
-| 内容 | 说明 |
+| 模块 | 内容 |
 |---|---|
-| 🖥️ **前台** | Next.js 16 App Router，动态 SSR，深蓝紫渐变 + 玻璃卡片，亮/暗色切换 |
-| 📝 **文章** | Markdown 写作，支持标签、归档、搜索、目录、相关文章和 RSS |
+| 📝 **文章** | Markdown 写作、标签、目录、相关文章、归档、搜索、RSS |
 | 💬 **动态** | 记录零碎的想法和日常 |
-| ✍️ **留言** | 登录后在留言板留下想说的话 |
-| 💭 **评论** | 文章和动态都支持评论，审核后展示 |
-| 🔌 **API** | `/api/v1`：公开读接口；登录、评论、留言写入需要 Session + CSRF；后台读取需要管理员 Session |
-| ⚙️ **后台** | Next.js 仪表盘与文章列表；文章编辑、审核、用户等其余页面继续使用 FastAPI + Jinja2。邮箱 + 密码 + 验证码登录，可选 TOTP |
+| ✍️ **互动** | 登录后评论、留言；评论审核后展示 |
+| ⚙️ **后台** | 文章、评论、动态、用户、图片与安全设置；邮箱验证码 + 可选 TOTP |
+| 🎨 **体验** | 响应式布局、亮/暗色切换、CSP、CSRF、数据库限流 |
+| 🔌 **API** | `/api/v1`：公开读接口 + 登录/写入接口 + 后台只读接口 |
 
-## 技术
+## 技术栈
 
-**前台**：`Next.js 16` · `React 19` · `TypeScript` · `Tailwind CSS 4` · `openapi-fetch`
-**后端**：`FastAPI` · `SQLAlchemy` · `MySQL` · `Alembic` · `Markdown` · `Pygments` · `Pillow`
+| 层 | 技术 |
+|---|---|
+| 前台 | Next.js 16（App Router）· React 19 · TypeScript · Tailwind CSS 4 |
+| 后端 | FastAPI · SQLAlchemy 2 · Alembic · MySQL 8 |
+| 内容 | Markdown（markdown-it-py）· Pygments · Pillow |
+| 认证 | Session Cookie · CSRF · 邮箱验证码 · 可选 TOTP |
+| 部署 | Nginx · systemd · Let's Encrypt |
 
-## 目录
+> 后台仪表盘和文章列表已迁移到 Next.js；文章编辑、审核、用户与安全设置仍由 FastAPI + Jinja2 提供。
 
-```
-app/          FastAPI 后端、Jinja2 后台、公开与后台 API
-frontend/     Next.js 前台与后台
-deploy/       Nginx、systemd、部署/上线文档
-docs/         API 与设计文档（本地文档，按仓库策略忽略）
-tests/        后端 pytest
+## 项目结构
+
+```text
+.
+├── app/                  FastAPI 后端
+│   ├── routers/          公开、账户、后台与 /api/v1 路由
+│   ├── services/         内容、账户、评论、上传、通知等业务逻辑
+│   ├── templates/        Jinja2 管理页与旧前台模板
+│   ├── static/           样式、脚本与上传图片
+│   ├── models.py         SQLAlchemy 模型
+│   └── main.py           应用入口与中间件
+├── frontend/             Next.js 16 前台
+│   ├── app/              App Router 页面（首页、文章、后台等）
+│   ├── components/       页面组件
+│   ├── lib/api/          API 客户端与 OpenAPI 生成类型
+│   └── e2e/              Playwright 端到端测试
+├── deploy/               Nginx、systemd、部署与上线检查
+├── migrations/           Alembic 数据库迁移
+├── scripts/              运维与开发辅助脚本
+├── tests/                pytest 测试
+├── docs/                 API 与设计文档
+├── requirements.txt      Python 依赖
+└── alembic.ini           Alembic 配置
 ```
 
 ## 本地开发
 
-### 1. 后端
+### 后端
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate          # Windows
-# source .venv/bin/activate     # macOS / Linux
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env             # Windows: copy .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-后端与旧 Jinja2 站点：<http://localhost:8000>
-API 文档（仅 `DEBUG=true`）：<http://localhost:8000/docs>
+- 后端 / 旧站点：<http://localhost:8000>
+- API 文档（仅 `DEBUG=true`）：<http://localhost:8000/docs>
 
-### 2. 前台
+### 前台
 
 ```bash
 cd frontend
@@ -68,10 +95,7 @@ npm install
 npm run dev
 ```
 
-新前台：<http://localhost:3000>
-
-> 当前是 staging 阶段：新设计在 Next.js 前台（:3000）。
-> Next.js 后台的 `/admin`、`/admin/posts` 已接管仪表盘和文章列表；登录、文章编辑、审核等仍未迁移的页面由 FastAPI 的 Jinja2 站点提供。
+- 前台：<http://localhost:3000>
 
 环境变量：
 
@@ -80,17 +104,47 @@ API_BASE_URL=http://127.0.0.1:8000
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-`API_BASE_URL` 是运行时变量；`NEXT_PUBLIC_SITE_URL` 会在 `npm run build` 时内联，生产构建前必须先设置。
+`API_BASE_URL` 是运行时变量；`NEXT_PUBLIC_SITE_URL` 会在 `npm run build` 时内联，生产构建前需要先设置。
+
+## 测试
+
+```bash
+# 后端
+pytest
+ruff check app tests scripts
+black --check app tests scripts
+
+# 前台
+cd frontend
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+## API
+
+接口说明见 [docs/api-v1.md](docs/api-v1.md)。修改后端路由后，可以重新生成前端类型：
+
+```bash
+cd frontend
+npm run openapi:generate
+```
 
 ## 部署
 
-- 后端：见 [deploy/DEPLOY.md](deploy/DEPLOY.md)
-- Next.js staging：`deploy/nextjs.service` + `deploy/nginx.staging.conf`，步骤见 DEPLOY.md §12
+- 后端部署：见 [deploy/DEPLOY.md](deploy/DEPLOY.md)
 - 上线前检查：见 [deploy/PRELAUNCH.md](deploy/PRELAUNCH.md)
+
+生产环境使用 Nginx 同源代理，浏览器只访问一个域名；Next.js 与 FastAPI 由 systemd 管理。
 
 ## 关于
 
-作者：DenJeb
-这里记录我的文章、想法和日常。
+博客还在持续更新中。
 
-博客正在持续建设中。代码和文章按 [Apache License 2.0](LICENSE) 授权。
+- GitHub: [@DenJeb](https://github.com/DenJeb)
+- Email: [denjeb@qq.com](mailto:denjeb@qq.com)
+
+## License
+
+本项目基于 [Apache License 2.0](LICENSE) 授权，© 2026 DenJeb。

@@ -32,6 +32,7 @@
 - [ ] 手动执行一次 `python -m app.backup`
 - [ ] 执行一次恢复演练：`python -m app.rehearse_restore`
 - [ ] 安装并启用 `blog-backup.timer`
+- [ ] 安装并启用 `blog-notifications.timer`（SMTP 故障后自动补发通知）
 - [ ] 用 `python -m app.create_admin --reset-totp` 验证丢失认证器时的恢复路径
 - [ ] 确认 SMTP 故障时可通过服务器修改 `.env`：`ADMIN_LOGIN_CODE_ENABLED=false`，重启后再登录
 - [ ] Next.js 前端：安装 Node.js 24 + npm；用 `frontend/.env.production.example` 创建 `.env.production`，设置 `API_BASE_URL` 和 `NEXT_PUBLIC_SITE_URL`（后者必须在 `npm run build` 前设置），然后 `npm ci && npm run build`

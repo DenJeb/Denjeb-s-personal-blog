@@ -23,7 +23,6 @@ export default async function TagsPage({
 
   if (!tag) {
     const tags = await getTags();
-    const maxCount = Math.max(...tags.items.map((item) => item.count), 1);
 
     return (
       <section className="shell">
@@ -41,9 +40,6 @@ export default async function TagsPage({
                 key={item.name}
                 href={`/tags?tag=${encodeURIComponent(item.name)}`}
                 className="chip"
-                style={{
-                  fontSize: `${1 + (item.count / maxCount) * 0.9}rem`,
-                }}
               >
                 #{item.name}
                 <span className="tag-count">{item.count}</span>

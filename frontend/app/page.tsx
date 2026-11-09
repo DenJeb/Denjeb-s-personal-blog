@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default async function Home() {
   const site = await loadSiteInfo(getSiteInfo);
   const [postsPage, tags, moments] = await Promise.all([
-    getPosts({ perPage: 6 }).catch(() => null),
+    getPosts({ perPage: 3 }).catch(() => null),
     getTags().catch(() => null),
     getMoments(1).catch(() => null),
   ]);

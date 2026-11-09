@@ -89,7 +89,17 @@ python -m app.content_io import --replace
 python -m app.services.notifications send --limit 50
 ```
 
-可以把这个命令加入 cron 或 systemd timer 定时执行。
+仓库提供了补发 timer：
+
+```bash
+sudo cp deploy/blog-notifications.service /etc/systemd/system/
+sudo cp deploy/blog-notifications.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now blog-notifications.timer
+systemctl list-timers blog-notifications.timer
+```
+
+它会每 10 分钟尝试发送一次未成功的通知；SMTP 恢复后无需手动补发。
 
 完成后把目录交给服务用户，并保护 `.env`：
 

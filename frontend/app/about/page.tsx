@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { pageMetadata } from "@/lib/page-metadata";
@@ -19,7 +20,13 @@ export default function AboutPage() {
         <section className="glass about-card">
           <div className="profile-top">
             <div className="avatar" aria-hidden="true">
-              D
+              <Image
+                className="avatar-photo"
+                src="/avatar.jpg"
+                alt=""
+                width={72}
+                height={72}
+              />
             </div>
             <div>
               <div className="profile-name">DenJeb</div>

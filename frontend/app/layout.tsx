@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { siteConfig } from "@/lib/site-config";
+import { THEME_COOKIE, type Theme } from "@/lib/theme";
 
 import "./globals.css";
 import "./pygments.css";
@@ -51,8 +52,8 @@ export default async function RootLayout({
 }: {
   children: ReactNode;
 }) {
-  const theme =
-    (await cookies()).get("theme")?.value === "light" ? "light" : "dark";
+  const theme: Theme =
+    (await cookies()).get(THEME_COOKIE)?.value === "light" ? "light" : "dark";
 
   return (
     <html
