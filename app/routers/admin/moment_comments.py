@@ -4,14 +4,19 @@
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.auth import CurrentAdmin
 from app.config import settings
 from app.csrf import verify_csrf
 from app.deps import DbSession
 from app.models import Moment, MomentComment
-from app.routers.admin.common import PAGE_SIZE, moment_page, page_slice
+from app.routers.admin.common import moment_page
+from app.services.comments import (
+    delete_moment_comment,
+    paginate_admin_moment_comments,
+    toggle_moment_comment,
+)
 from app.templating import templates
 
 router = APIRouter()
@@ -24,14 +29,7 @@ def admin_moment_comments(
     db: DbSession,
     page: int = Query(1, ge=1),
 ):
-    total = db.scalar(select(func.count()).select_from(MomentComment)) or 0
-    page, total_pages = page_slice(page, total)
-    comments = db.scalars(
-        select(MomentComment)
-        .order_by(MomentComment.created_at.desc(), MomentComment.id.desc())
-        .offset((page - 1) * PAGE_SIZE)
-        .limit(PAGE_SIZE)
-    ).all()
+    comments, total, page, total_pages = paginate_admin_moment_comments(db, page)
     moment_ids = {comment.moment_id for comment in comments}
     moment_pages = {}
     if moment_ids:
@@ -64,12 +62,10 @@ def moment_comment_approve(
     page: int = Form(1, ge=1),
     _csrf: None = Depends(verify_csrf),
 ):
-    comment = db.get(MomentComment, comment_id)
+    comment = toggle_moment_comment(db, comment_id)
     if comment is None:
         raise HTTPException(status_code=404, detail="动态评论不存在！")
 
-    comment.is_approved = not comment.is_approved
-    db.commit()
     if request.headers.get("HX-Request") == "true":
         return templates.TemplateResponse(
             request=request,
@@ -118,12 +114,9 @@ def moment_comment_delete(
     page: int = Query(1, ge=1),
     _csrf: None = Depends(verify_csrf),
 ):
-    comment = db.get(MomentComment, comment_id)
-    if comment is None:
+    if not delete_moment_comment(db, comment_id):
         raise HTTPException(status_code=404, detail="动态评论不存在！")
 
-    db.delete(comment)
-    db.commit()
     suffix = f"&page={page}" if page > 1 else ""
     return RedirectResponse(
         f"/admin/moment-comments?deleted=1{suffix}", status_code=303

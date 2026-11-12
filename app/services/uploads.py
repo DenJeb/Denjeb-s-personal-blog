@@ -141,3 +141,25 @@ def delete_unreferenced_uploads(db: Session, candidates: set[str]) -> None:
                 path.unlink()
             except OSError:
                 pass
+
+
+def delete_upload_by_path(db: Session, path: str) -> str:
+    """删除一个未被引用的上传文件，返回 deleted/in_use/missing/invalid/error。"""
+    relative = Path(path)
+    if relative.is_absolute() or ".." in relative.parts:
+        return "invalid"
+
+    target = (UPLOAD_DIR / relative).resolve()
+    root = UPLOAD_DIR.resolve()
+    if root not in target.parents or not target.is_file():
+        return "missing"
+
+    url = f"/static/uploads/{relative.as_posix()}"
+    if url in all_referenced_upload_urls(db):
+        return "in_use"
+
+    try:
+        target.unlink()
+    except OSError:
+        return "error"
+    return "deleted"

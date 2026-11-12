@@ -1,0 +1,13 @@
+{
+  "id": 1,
+  "title": "第一篇文章",
+  "slug": "first-post",
+  "summary": "这是第一篇文章的摘要。",
+  "published_at": "2026-01-01",
+  "is_published": true,
+  "is_public": true,
+  "tags": ["FastAPI", "Next.js"],
+  "reading_minutes": 3,
+  "content": "# Hello\n\nbody",
+  "content_html": "<h1>Hello</h1><p>body</p>"
+}

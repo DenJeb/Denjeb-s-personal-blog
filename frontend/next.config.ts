@@ -27,12 +27,13 @@ const rewrites = proxyPaths.flatMap((path) => [
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   async rewrites() {
-    // Keep these as afterFiles so Next.js admin pages take precedence over
-    // the legacy Jinja admin pages served by FastAPI.
+    // Use fallback so filesystem routes (including dynamic admin pages such as
+    // /admin/moments/[id]/edit) win over the legacy Jinja admin pages; only
+    // unmatched paths are proxied to FastAPI.
     return {
       beforeFiles: [],
-      afterFiles: rewrites,
-      fallback: [],
+      afterFiles: [],
+      fallback: rewrites,
     };
   },
   async headers() {

@@ -12,6 +12,7 @@ from app.csrf import verify_csrf
 from app.deps import DbSession
 from app.models import Message
 from app.routers.admin.common import PAGE_SIZE, page_slice
+from app.services.interactions import delete_message
 from app.templating import templates
 
 router = APIRouter()
@@ -86,7 +87,6 @@ def message_delete(
     if message is None:
         raise HTTPException(status_code=404, detail="留言不存在！")
 
-    db.delete(message)
-    db.commit()
+    delete_message(db, message)
     suffix = f"&page={page}" if page > 1 else ""
     return RedirectResponse(f"/admin/messages?deleted=1{suffix}", status_code=303)

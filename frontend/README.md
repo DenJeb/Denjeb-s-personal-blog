@@ -1,6 +1,6 @@
 # Next.js 前端
 
-个人博客的 Next.js 16 App Router 前端。数据、认证和业务逻辑仍在仓库根目录的 FastAPI 后端；这里负责公开页面，以及已迁移的后台仪表盘和文章列表。
+个人博客的 Next.js 16 App Router 前端。数据、认证和业务逻辑仍在仓库根目录的 FastAPI 后端；这里负责公开页面和后台日常管理页面。
 
 ## 环境要求
 
@@ -26,7 +26,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 - `API_BASE_URL`：Next.js 服务端调用 FastAPI 的内网地址，运行时读取。
 - `NEXT_PUBLIC_SITE_URL`：站点对外地址，**build 时内联**到 canonical / OG / `siteConfig`；生产构建前必须设置。
 
-开发环境通过 `next.config.ts` 的 rewrites 把 `/api`、`/static`、`/admin`、`/login` 等路径代理到 FastAPI，保证浏览器只面对 `:3000` 一个源。后台 rewrites 放在 `afterFiles`：`/admin` 和 `/admin/posts` 由 Next.js 页面接管，其余 `/admin/*`（登录、编辑、审核等）继续落到 FastAPI。
+开发环境通过 `next.config.ts` 的 rewrites 把 `/api`、`/static`、`/admin`、`/login` 等路径代理到 FastAPI，保证浏览器只面对 `:3000` 一个源。代理放在 `fallback`：Next.js 已实现的后台页面（含 `/admin/moments/[id]/edit` 等动态路由）优先，未匹配路径（管理员登录、旧文章预览等）继续落到 FastAPI。
 
 ## 常用脚本
 
@@ -77,7 +77,7 @@ npx playwright test      # 默认：mock API + next dev，使用本机 Edge
 ## 说明
 
 - 第一版是动态 SSR（`cache: "no-store"`），不做 ISR / on-demand revalidation。
-- `/login` 密码登录页由 Next.js 提供；`/login/code`、`/register`、`/forgot-password`、`/reset-password`、`/account` 仍由 FastAPI + Jinja2 提供。
-- `/admin`、`/admin/posts` 已由 Next.js 提供；管理员登录、文章编辑/预览、评论审核等剩余后台页面仍由 FastAPI + Jinja2 提供。后台 SSR 需要把原始 `Cookie` 头转发给 `/api/v1/admin/*`。
+- `/login` 密码登录页和 `/account` 由 Next.js 提供；`/login/code`、`/register`、`/forgot-password`、`/reset-password`、`/account/delete` 仍由 FastAPI + Jinja2 提供。
+- `/admin`、`/admin/posts`（列表/新建/编辑）、`/admin/comments`、`/admin/moment-comments`、`/admin/moments`（列表/新建/编辑）、`/admin/messages`、`/admin/users`、`/admin/uploads`、`/admin/security` 已由 Next.js 提供。管理员登录（`/admin/login` 等）和旧文章预览 `/admin/posts/{id}/preview` 仍由 FastAPI + Jinja2 提供。后台 SSR 需要把原始 `Cookie` 头转发给 `/api/v1/admin/*`。
 - 文章正文使用后端返回的 `content_html`（`html=False` 渲染），前端不重新解析 Markdown。
 - 设计方向：Butterfly / Fluid 风（深蓝紫渐变、玻璃卡片、hero + 侧栏），阅读页保持窄正文栏。

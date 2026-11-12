@@ -4,14 +4,15 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 
 from app.auth import CurrentAdmin
 from app.config import settings
 from app.csrf import verify_csrf
 from app.deps import DbSession
-from app.models import User, VerificationCode
+from app.models import User
 from app.routers.admin.common import PAGE_SIZE, page_slice
+from app.services.accounts import delete_user, toggle_user
 from app.templating import templates
 
 router = APIRouter()
@@ -60,13 +61,7 @@ def user_toggle(
     if user is None:
         raise HTTPException(status_code=404, detail="用户不存在！")
 
-    user.is_active = not user.is_active
-    user.session_version += 1
-    if not user.is_active and user.email:
-        db.execute(
-            delete(VerificationCode).where(VerificationCode.email == user.email.lower())
-        )
-    db.commit()
+    toggle_user(db, user)
     return RedirectResponse("/admin/users?saved=1", status_code=303)
 
 
@@ -102,10 +97,5 @@ def user_delete(
     if user is None:
         raise HTTPException(status_code=404, detail="用户不存在！")
 
-    if user.email:
-        db.execute(
-            delete(VerificationCode).where(VerificationCode.email == user.email.lower())
-        )
-    db.delete(user)
-    db.commit()
+    delete_user(db, user)
     return RedirectResponse("/admin/users?deleted=1", status_code=303)

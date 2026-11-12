@@ -32,7 +32,7 @@ test("admin dashboard and post list load for a signed-in admin", async ({
   expect(dashboardResponse?.status()).toBe(200);
   await expect(page.getByRole("heading", { name: "仪表盘" })).toBeVisible();
   await expect(page.getByText("博客当前的数据概览。")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Phase 3 进度" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "后台迁移" })).toBeVisible();
 
   await page.goto("/admin/posts");
 

@@ -40,27 +40,70 @@ export async function getCsrfToken(): Promise<string> {
   return data.csrf_token;
 }
 
+async function csrfFetch(
+  method: string,
+  url: string,
+  init: Omit<RequestInit, "method"> = {},
+): Promise<Response> {
+  const token = await getCsrfToken();
+  return fetch(url, {
+    ...init,
+    method,
+    credentials: "same-origin",
+    cache: "no-store",
+    headers: {
+      ...(init.headers as Record<string, string> | undefined),
+      "X-CSRF-Token": token,
+    },
+  });
+}
+
+function errorFrom(response: Response, data: Record<string, unknown>): ApiError {
+  const detail =
+    typeof data.detail === "string" ? data.detail : "请求失败，请稍后重试。";
+  return new ApiError(response.status, detail);
+}
+
+export async function sendJson<T = Record<string, unknown>>(
+  method: "POST" | "PUT" | "DELETE",
+  url: string,
+  body?: unknown,
+): Promise<T> {
+  const headers: Record<string, string> = {};
+  const init: RequestInit = {};
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    init.body = JSON.stringify(body);
+  }
+
+  const response = await csrfFetch(method, url, { ...init, headers });
+  const data = await readJson(response);
+
+  if (!response.ok) {
+    throw errorFrom(response, data);
+  }
+
+  return data as T;
+}
+
+export async function postForm<T = Record<string, unknown>>(
+  url: string,
+  formData: FormData,
+): Promise<T> {
+  // Do not set Content-Type: the browser must add the multipart boundary.
+  const response = await csrfFetch("POST", url, { body: formData });
+  const data = await readJson(response);
+
+  if (!response.ok) {
+    throw errorFrom(response, data);
+  }
+
+  return data as T;
+}
+
 export async function postJson<T = Record<string, unknown>>(
   url: string,
   body: unknown,
 ): Promise<T> {
-  const token = await getCsrfToken();
-  const response = await fetch(url, {
-    method: "POST",
-    credentials: "same-origin",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRF-Token": token,
-    },
-    body: JSON.stringify(body),
-  });
-  const data = await readJson(response);
-
-  if (!response.ok) {
-    const detail =
-      typeof data.detail === "string" ? data.detail : "请求失败，请稍后重试。";
-    throw new ApiError(response.status, detail);
-  }
-
-  return data as T;
+  return sendJson<T>("POST", url, body);
 }

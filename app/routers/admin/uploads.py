@@ -2,8 +2,6 @@
 ========== 后台图片管理 ==========
 """
 
-from pathlib import Path
-
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 
@@ -12,7 +10,11 @@ from app.config import settings
 from app.csrf import verify_csrf
 from app.deps import DbSession
 from app.routers.admin.common import PAGE_SIZE, page_slice
-from app.services.uploads import UPLOAD_DIR, all_referenced_upload_urls
+from app.services.uploads import (
+    UPLOAD_DIR,
+    all_referenced_upload_urls,
+    delete_upload_by_path,
+)
 from app.templating import templates
 
 router = APIRouter()
@@ -72,22 +74,14 @@ def delete_upload(
     path: str = Form(...),
     _csrf: None = Depends(verify_csrf),
 ):
-    relative = Path(path)
-    if relative.is_absolute() or ".." in relative.parts:
+    result = delete_upload_by_path(db, path)
+    if result == "invalid":
         raise HTTPException(status_code=400, detail="非法图片路径")
-
-    target = (UPLOAD_DIR / relative).resolve()
-    root = UPLOAD_DIR.resolve()
-    if root not in target.parents or not target.is_file():
+    if result == "missing":
         raise HTTPException(status_code=404, detail="图片不存在")
-
-    url = f"/static/uploads/{relative.as_posix()}"
-    if url in all_referenced_upload_urls(db):
+    if result == "in_use":
         return RedirectResponse("/admin/uploads?in_use=1", status_code=303)
-
-    try:
-        target.unlink()
-    except OSError:
+    if result == "error":
         return RedirectResponse("/admin/uploads?error=1", status_code=303)
 
     return RedirectResponse("/admin/uploads?deleted=1", status_code=303)

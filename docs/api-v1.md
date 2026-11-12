@@ -40,6 +40,33 @@
 | GET | `/api/v1/admin/dashboard` | 后台统计：文章、动态、留言、评论、用户和待审核数 |
 | GET | `/api/v1/admin/posts` | 后台文章列表（含草稿和未来文章），返回 `is_public` 标识是否已对外可见，`page` 从 1 开始 |
 | GET | `/api/v1/admin/posts/{id}` | 后台文章详情，包含原始 Markdown 和 HTML |
+| POST | `/api/v1/admin/posts` | 新建文章（需 CSRF） |
+| PUT | `/api/v1/admin/posts/{id}` | 更新文章（需 CSRF） |
+| DELETE | `/api/v1/admin/posts/{id}` | 删除文章（需 CSRF） |
+| POST | `/api/v1/admin/posts/preview` | 预览 Markdown，返回 `{"html": "..."}`（需 CSRF） |
+| GET | `/api/v1/admin/comments` | 全部文章评论（含待审核） |
+| POST | `/api/v1/admin/comments/{id}/approve` | 切换评论审核状态（需 CSRF） |
+| DELETE | `/api/v1/admin/comments/{id}` | 删除评论（需 CSRF） |
+| GET | `/api/v1/admin/moment-comments` | 全部动态评论（含待审核） |
+| POST | `/api/v1/admin/moment-comments/{id}/approve` | 切换动态评论审核状态（需 CSRF） |
+| DELETE | `/api/v1/admin/moment-comments/{id}` | 删除动态评论（需 CSRF） |
+| GET | `/api/v1/admin/moments` | 动态列表（后台） |
+| GET | `/api/v1/admin/moments/{id}` | 动态详情（后台编辑用） |
+| POST | `/api/v1/admin/moments` | 发布动态（需 CSRF） |
+| PUT | `/api/v1/admin/moments/{id}` | 更新动态（需 CSRF） |
+| DELETE | `/api/v1/admin/moments/{id}` | 删除动态（需 CSRF） |
+| GET | `/api/v1/admin/messages` | 留言列表（后台） |
+| DELETE | `/api/v1/admin/messages/{id}` | 删除留言（需 CSRF） |
+| GET | `/api/v1/admin/users` | 注册用户列表（后台） |
+| POST | `/api/v1/admin/users/{id}/toggle` | 启用/禁用用户（需 CSRF） |
+| DELETE | `/api/v1/admin/users/{id}` | 删除用户（需 CSRF） |
+| GET | `/api/v1/admin/uploads` | 上传图片列表（后台） |
+| POST | `/api/v1/admin/uploads/inline` | 行内图片上传（multipart，需 CSRF） |
+| POST | `/api/v1/admin/uploads/delete` | 删除未被引用的图片（需 CSRF） |
+| GET | `/api/v1/admin/security` | 两步验证状态 |
+| POST | `/api/v1/admin/security/totp/start` | 开始设置 TOTP（需 CSRF） |
+| POST | `/api/v1/admin/security/totp/enable` | 输入验证码启用 TOTP（需 CSRF） |
+| POST | `/api/v1/admin/security/totp/disable` | 密码 + 验证码关闭 TOTP（需 CSRF） |
 
 ## 文章列表
 
@@ -136,7 +163,7 @@ X-CSRF-Token: <csrf_token>
 
 失败约定：未登录 401；空内容或 CSRF 失败 400；15 秒内重复提交 429（带 `Retry-After`）。
 
-## 后台 API（Phase 3a）
+## 后台 API（Phase 3a/3b）
 
 后台接口复用管理员登录 session。管理员先通过 FastAPI 的 `/admin/login` 完成邮箱 + 密码 + 验证码（可选 TOTP）流程，浏览器拿到 `blog_session` 后再访问：
 
@@ -145,8 +172,11 @@ GET /api/v1/admin/dashboard
 Cookie: blog_session=...
 ```
 
-未登录管理员返回 `401 {"detail": "请先登录后台"}`，不会重定向。`/api/v1/admin/posts` 会返回草稿和未来文章，仅供后台使用。Next.js 服务端渲染 `/admin`、`/admin/posts` 时读取原始 `Cookie` 请求头转发给 FastAPI；不要重新序列化签名 Cookie。
-目前只迁移了仪表盘和文章列表读取；文章编辑、评论/动态审核、用户与安全设置仍是 FastAPI 的 Jinja2 页面。
+未登录管理员返回 `401 {"detail": "请先登录后台"}`，不会重定向。`/api/v1/admin/posts` 会返回草稿和未来文章，仅供后台使用。Next.js 服务端渲染后台页面时读取原始 `Cookie` 请求头转发给 FastAPI；不要重新序列化签名 Cookie。
+
+后台写接口与前台写接口使用同一套 CSRF 约定：先 `GET /api/v1/auth/csrf`，再把 token 放进 `X-CSRF-Token` 头。错误约定：未登录 401、CSRF 失败 400、资源不存在 404、图片仍被引用 409。
+
+后台日常页面已迁移到 Next.js：仪表盘、文章列表/新建/编辑、评论审核、动态、动态评论、留言、用户、图片与安全设置。管理员登录（`/admin/login`、`/admin/login/code`、`/admin/login/totp`）和旧文章预览 `/admin/posts/{id}/preview` 仍由 FastAPI 提供。
 
 ## Next.js 接入建议
 
@@ -155,4 +185,4 @@ Cookie: blog_session=...
 3. **不要跨子域使用 `__Host-` Cookie**：`__Host-blog_session` 要求 Secure、Path=/ 且不能设置 Domain，适合同源路径代理。
 4. **派生数据直接使用**：`content_html`、`toc`、`reading_minutes`、`prev/next`、`related_posts` 都由后端算好，Next 不需要重新实现 Markdown 和目录。
 5. **写接口已接入**：登录/登出、评论、动态评论、留言已提供 JSON API；注册、邮箱验证码、找回密码、账户注销仍走 FastAPI 的 Jinja 页面。
-6. **后台 SSR**：Next.js 服务端读取 `headers().get("cookie")` 的原始字符串转发给后台 API，不能重新序列化签名 Cookie。`next.config.ts` 的 `/admin` 反向代理放在 `afterFiles`，让 Next.js 已实现的 `/admin`、`/admin/posts` 优先，其余后台路径继续落到 FastAPI。
+6. **后台 SSR**：Next.js 服务端读取 `headers().get("cookie")` 的原始字符串转发给后台 API，不能重新序列化签名 Cookie。`next.config.ts` 的反向代理放在 `fallback`，让 Next.js 已实现的后台页面（含 `/admin/moments/[id]/edit` 等动态路由）优先，其余后台路径继续落到 FastAPI。

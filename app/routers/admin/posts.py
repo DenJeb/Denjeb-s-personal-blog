@@ -28,7 +28,7 @@ from app.routers.admin.common import (
     post_form_values,
     validate_content_fields,
 )
-from app.services.content import reading_minutes
+from app.services.content import is_post_public, reading_minutes
 from app.services.uploads import (
     append_uploaded_image,
     delete_unreferenced_uploads,
@@ -110,6 +110,7 @@ def post_preview(
             "content_html": post.content_html or render_markdown(post.content),
             "toc": headings_for(post.content),
             "read_minutes": reading_minutes(post.content),
+            "is_public": is_post_public(post),
         },
     )
 

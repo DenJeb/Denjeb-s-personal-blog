@@ -220,3 +220,23 @@ def safe_next(next_url: str) -> str:
 
 def valid_nickname(nickname: str) -> bool:
     return 3 <= len(nickname) <= 30 and re.fullmatch(r"\w+", nickname) is not None
+
+
+def toggle_user(db: Session, user: User) -> User:
+    user.is_active = not user.is_active
+    user.session_version += 1
+    if not user.is_active and user.email:
+        db.execute(
+            delete(VerificationCode).where(VerificationCode.email == user.email.lower())
+        )
+    db.commit()
+    return user
+
+
+def delete_user(db: Session, user: User) -> None:
+    if user.email:
+        db.execute(
+            delete(VerificationCode).where(VerificationCode.email == user.email.lower())
+        )
+    db.delete(user)
+    db.commit()

@@ -5,17 +5,20 @@
 import pyotp
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
-from pwdlib import PasswordHash
-from pwdlib.exceptions import UnknownHashError
 
 from app.auth import CurrentAdmin
 from app.config import settings
 from app.csrf import verify_csrf
 from app.deps import DbSession
+from app.services.security import (
+    disable_totp,
+    enable_totp,
+    provisioning_uri,
+    verify_totp,
+)
 from app.templating import templates
 
 router = APIRouter()
-password_hash = PasswordHash.recommended()
 
 PENDING_TOTP_SECRET = "pending_totp_secret"
 
@@ -24,9 +27,10 @@ def _security_context(request: Request, admin, error: str | None = None) -> dict
     setup_secret = request.session.get(PENDING_TOTP_SECRET)
     setup_uri = None
     if setup_secret:
-        setup_uri = pyotp.TOTP(setup_secret).provisioning_uri(
-            name=admin.email or admin.username,
-            issuer_name=settings.app_name,
+        setup_uri = provisioning_uri(
+            setup_secret,
+            admin.email or admin.username,
+            settings.app_name,
         )
     return {
         "app_name": settings.app_name,
@@ -76,7 +80,7 @@ def totp_enable(
     if not secret:
         return RedirectResponse("/admin/security", status_code=303)
 
-    if not pyotp.TOTP(secret).verify(code.strip(), valid_window=1):
+    if not verify_totp(secret, code):
         return templates.TemplateResponse(
             request=request,
             name="admin/security.html",
@@ -84,8 +88,7 @@ def totp_enable(
             status_code=400,
         )
 
-    admin.totp_secret = secret
-    db.commit()
+    enable_totp(db, admin, secret)
     request.session.pop(PENDING_TOTP_SECRET, None)
     return RedirectResponse("/admin/security?saved=1", status_code=303)
 
@@ -102,14 +105,7 @@ def totp_disable(
     if not admin.totp_secret:
         return RedirectResponse("/admin/security", status_code=303)
 
-    try:
-        valid_password = password_hash.verify(password, admin.password_hash)
-    except UnknownHashError:
-        valid_password = False
-
-    if not valid_password or not pyotp.TOTP(admin.totp_secret).verify(
-        code.strip(), valid_window=1
-    ):
+    if not disable_totp(db, admin, password, code):
         return templates.TemplateResponse(
             request=request,
             name="admin/security.html",
@@ -117,8 +113,5 @@ def totp_disable(
             status_code=400,
         )
 
-    admin.totp_secret = None
-    admin.session_version += 1
-    db.commit()
     request.session["admin_version"] = admin.session_version
     return RedirectResponse("/admin/security?saved=1", status_code=303)

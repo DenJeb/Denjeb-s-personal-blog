@@ -4,6 +4,9 @@ export default defineConfig({
   testDir: "./e2e",
   testIgnore: ["**/api-error.spec.ts"],
   reporter: "list",
+  // The mock API keeps state in memory and the dev server compiles routes on
+  // demand; one worker keeps both deterministic.
+  workers: 1,
   use: {
     baseURL: "http://127.0.0.1:3000",
     trace: "on-first-retry",

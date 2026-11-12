@@ -8,11 +8,12 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from app.models import BlogPost, Moment, User
+from app.models import BlogPost, Message, Moment, User
 from app.rate_limit import is_rate_limited, record_event
 from app.services.comments import add_comment, add_message, add_moment_comment
 
 INTERACTION_COOLDOWN_SECONDS = 15
+MOMENT_MAX_LENGTH = 2000
 
 
 @dataclass(frozen=True)
@@ -83,3 +84,37 @@ def create_message(
     add_message(db, user, body)
     db.commit()
     return InteractionResult(True, "submitted", "留言已提交。")
+
+
+def validate_moment_content(content: str) -> str | None:
+    body = content.strip()
+    if not body:
+        return "动态内容不能为空。"
+    if len(body) > MOMENT_MAX_LENGTH:
+        return f"动态不能超过 {MOMENT_MAX_LENGTH} 个字符。"
+    return None
+
+
+def create_moment(db: Session, content: str) -> Moment:
+    moment = Moment(content=content.strip())
+    db.add(moment)
+    db.commit()
+    db.refresh(moment)
+    return moment
+
+
+def update_moment(db: Session, moment: Moment, content: str) -> Moment:
+    moment.content = content.strip()
+    db.commit()
+    db.refresh(moment)
+    return moment
+
+
+def delete_moment(db: Session, moment: Moment) -> None:
+    db.delete(moment)
+    db.commit()
+
+
+def delete_message(db: Session, message: Message) -> None:
+    db.delete(message)
+    db.commit()

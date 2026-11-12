@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "id": 10,
+      "post_id": 1,
+      "post_title": "第一篇文章",
+      "post_slug": "first-post",
+      "author_name": "读者A",
+      "content": "这条评论待审核。",
+      "created_at": "2026-11-01T10:00:00",
+      "is_approved": false
+    },
+    {
+      "id": 11,
+      "post_id": 1,
+      "post_title": "第一篇文章",
+      "post_slug": "first-post",
+      "author_name": "读者B",
+      "content": "这条评论已通过。",
+      "created_at": "2026-11-02T11:00:00",
+      "is_approved": true
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 20,
+    "total": 2,
+    "total_pages": 1,
+    "has_prev": false,
+    "has_next": false
+  }
+}

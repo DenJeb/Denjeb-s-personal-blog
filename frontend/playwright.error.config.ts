@@ -4,6 +4,7 @@ export default defineConfig({
   testDir: "./e2e",
   testMatch: ["**/api-error.spec.ts"],
   reporter: "list",
+  workers: 1,
   use: {
     baseURL: "http://127.0.0.1:3200",
     trace: "on-first-retry",

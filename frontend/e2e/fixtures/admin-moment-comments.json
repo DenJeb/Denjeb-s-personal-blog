@@ -1,0 +1,21 @@
+{
+  "items": [
+    {
+      "id": 20,
+      "moment_id": 5,
+      "moment_page": 1,
+      "author_name": "读者C",
+      "content": "动态评论待审核。",
+      "created_at": "2026-11-03T09:00:00",
+      "is_approved": false
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 20,
+    "total": 1,
+    "total_pages": 1,
+    "has_prev": false,
+    "has_next": false
+  }
+}

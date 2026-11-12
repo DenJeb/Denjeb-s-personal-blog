@@ -10,44 +10,20 @@ from app.csrf import verify_csrf_header
 from app.deps import DbSession
 from app.models import BlogPost, Comment, Message, Moment, MomentComment, User
 from app.routers.admin.common import PAGE_SIZE, page_slice
+from app.routers.api import admin_content, admin_moderation, admin_settings
+from app.routers.api.admin_common import page_meta, post_summary
 from app.schemas.admin import (
     AdminDashboard,
     AdminMe,
     AdminPostDetail,
     AdminPostList,
-    AdminPostSummary,
 )
 from app.schemas.auth import LogoutResponse
-from app.schemas.public import PageMeta
-from app.services.content import reading_minutes
-from app.time_utils import site_today
 
 router = APIRouter()
-
-
-def _summary(post: BlogPost) -> AdminPostSummary:
-    return AdminPostSummary(
-        id=post.id,
-        title=post.title,
-        slug=post.slug,
-        summary=post.summary,
-        published_at=post.published_at,
-        is_published=post.is_published,
-        is_public=post.is_published and post.published_at <= site_today(),
-        tags=list(post.tags or []),
-        reading_minutes=reading_minutes(post.content),
-    )
-
-
-def _meta(page: int, per_page: int, total: int, total_pages: int) -> PageMeta:
-    return PageMeta(
-        page=page,
-        per_page=per_page,
-        total=total,
-        total_pages=total_pages,
-        has_prev=page > 1,
-        has_next=page < total_pages,
-    )
+router.include_router(admin_moderation.router)
+router.include_router(admin_content.router)
+router.include_router(admin_settings.router)
 
 
 @router.post("/admin/logout", response_model=LogoutResponse, name="admin_api_logout")
@@ -121,8 +97,8 @@ def posts(
     ).all()
 
     return AdminPostList(
-        items=[_summary(post) for post in items],
-        meta=_meta(page, PAGE_SIZE, total, total_pages),
+        items=[post_summary(post) for post in items],
+        meta=page_meta(page, total, total_pages),
     )
 
 
@@ -144,7 +120,7 @@ def post_detail(
         )
 
     return AdminPostDetail(
-        **_summary(post).model_dump(),
+        **post_summary(post).model_dump(),
         content=post.content,
         content_html=post.content_html,
     )

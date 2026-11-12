@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "name": "used.webp",
+      "url": "/static/uploads/used.webp",
+      "size": 2048,
+      "referenced": true
+    },
+    {
+      "name": "orphan.webp",
+      "url": "/static/uploads/orphan.webp",
+      "size": 1024,
+      "referenced": false
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 20,
+    "total": 2,
+    "total_pages": 1,
+    "has_prev": false,
+    "has_next": false
+  }
+}

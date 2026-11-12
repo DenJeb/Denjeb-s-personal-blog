@@ -301,7 +301,7 @@ GitHub Actions 会在 push / PR 时用 MySQL 8 测试库执行同样的检查；
 
 ## 12. Next.js 前台与后台（staging）
 
-公开前台、密码登录页 `/login`、账户页 `/account`、后台仪表盘 `/admin` 和文章列表 `/admin/posts` 已切到 Next.js；后台登录 `/admin/login`、文章编辑/审核/用户等剩余后台页、`/login/code`、注册/找回密码、`/account/delete`、`/api`、`/static` 和 feed 仍由 FastAPI 提供。
+公开前台、密码登录页 `/login`、账户页 `/account` 和后台日常页面（仪表盘、文章列表/新建/编辑、评论审核、动态、动态评论、留言、用户、图片、安全设置）已切到 Next.js；管理员登录 `/admin/login`、旧文章预览 `/admin/posts/{id}/preview`、`/login/code`、注册/找回密码、`/account/delete`、`/api`、`/static` 和 feed 仍由 FastAPI 提供。
 
 先安装 Node.js 24 和 npm。建议用 NodeSource 安装系统级 Node.js（`nextjs.service` 使用 `/usr/bin/npm`）；如果坚持用 nvm，需要把 `ExecStart` 改成 `www-data` 可执行的绝对路径。然后在 `/srv/blog/frontend` 创建 `.env.production`：
 
@@ -357,7 +357,7 @@ curl -I https://staging.yourdomain.com/account
 curl -s https://staging.yourdomain.com/healthz
 ```
 
-`/api/v1/site` 应返回 JSON；`/admin`、`/admin/posts` 应返回 Next.js 页面（未登录时显示管理员登录提示，登录后显示仪表盘/文章列表）；`/admin/login` 应返回 FastAPI 的 200，而不是 Next.js 404；`/account` 未登录时会跳到登录页；`/healthz` 应返回 `{"status":"ok"}`。
+`/api/v1/site` 应返回 JSON；`/admin`、`/admin/posts`、`/admin/comments`、`/admin/moments`、`/admin/users`、`/admin/uploads`、`/admin/security` 应返回 Next.js 页面（未登录时显示管理员登录提示，登录后显示对应管理页）；`/admin/login` 应返回 FastAPI 的 200，而不是 Next.js 404；`/account` 未登录时会跳到登录页；`/healthz` 应返回 `{"status":"ok"}`。
 
 staging 回滚时删除 staging server 的 Next 反代，或把 `/` 重新指回 `127.0.0.1:8000`。生产配置已包含 Next.js 路由，切换步骤见 §13。
 
@@ -416,8 +416,8 @@ sudo systemctl reload nginx
 
 | 路径 | 上游 |
 |---|---|
-| `/`、`/login`、`/account`、`/admin`、`/admin/posts` | Next.js `127.0.0.1:3000` |
-| `/api/`、`/static/`、`/admin/login`、其余 `/admin/*` | FastAPI `127.0.0.1:8000` |
+| `/`、`/login`、`/account`、`/admin`、`/admin/posts`（含新建/编辑）、`/admin/comments`、`/admin/moment-comments`、`/admin/moments`（含新建/编辑）、`/admin/messages`、`/admin/users`、`/admin/uploads`、`/admin/security` | Next.js `127.0.0.1:3000` |
+| `/api/`、`/static/`、`/admin/login`、`/admin/posts/{id}/preview`、其余 `/admin/*` | FastAPI `127.0.0.1:8000` |
 | `/register`、`/forgot-password`、`/reset-password`、`/account/*`、`/login/*` | FastAPI `127.0.0.1:8000` |
 
 ### 13.3 HTTPS 验收
@@ -438,7 +438,7 @@ curl -I https://yourdomain.com/rss.xml
 - `/login` 密码登录成功，Cookie 名为 `__Host-blog_session`
 - 前台评论/留言需要登录并带 CSRF，成功后进入审核
 - `/admin/login` 邮箱 + 密码 + 验证码能登录；`/admin` 显示 Next 仪表盘
-- `/admin/posts` 显示文章列表，编辑链接能打开 FastAPI 的旧编辑页
+- `/admin/posts` 显示文章列表，编辑链接能打开 Next.js 编辑器；评论审核、动态、留言、用户、图片和安全设置页面都能正常读写
 - 退出后台仍可在旧后台完成
 - 文章详情、搜索、标签、归档、动态、留言、RSS/sitemap/robots 都正常
 

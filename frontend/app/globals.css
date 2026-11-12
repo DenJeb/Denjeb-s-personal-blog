@@ -2130,6 +2130,15 @@ body:has(.admin-shell) > .site-footer {
   font-size: 0.78rem;
 }
 
+.admin-row-content {
+  margin: 0.55rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .admin-row-actions {
   display: flex;
   flex: none;
@@ -2145,6 +2154,80 @@ body:has(.admin-shell) > .site-footer {
   padding: 2.5rem;
   color: var(--muted);
   text-align: center;
+}
+
+.admin-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 760px;
+  padding: 1.4rem;
+}
+
+.admin-form label {
+  display: grid;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+
+.admin-form textarea {
+  min-height: 220px;
+  resize: vertical;
+}
+
+.admin-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.admin-security form {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.post-editor {
+  max-width: 920px;
+}
+
+.admin-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.admin-checkbox input {
+  width: auto;
+}
+
+.admin-editor-label {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-weight: 600;
+}
+
+.admin-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0.55rem;
+}
+
+.admin-editor-toolbar .btn {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.admin-editor-textarea {
+  min-height: 360px;
+  font-family: var(--font-geist-mono);
+  line-height: 1.7;
+}
+
+.admin-editor-preview {
+  margin-top: 1rem;
+  padding: 1.2rem;
 }
 
 .admin-panel {

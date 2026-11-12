@@ -4,15 +4,17 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy import func, select
-from sqlalchemy.orm import selectinload
 
 from app.auth import CurrentAdmin
 from app.config import settings
 from app.csrf import verify_csrf
 from app.deps import DbSession
 from app.models import Comment
-from app.routers.admin.common import PAGE_SIZE, page_slice
+from app.services.comments import (
+    delete_comment,
+    paginate_admin_comments,
+    toggle_comment,
+)
 from app.templating import templates
 
 router = APIRouter()
@@ -25,15 +27,7 @@ def admin_comments(
     db: DbSession,
     page: int = Query(1, ge=1),
 ):
-    total = db.scalar(select(func.count()).select_from(Comment)) or 0
-    page, total_pages = page_slice(page, total)
-    comments = db.scalars(
-        select(Comment)
-        .options(selectinload(Comment.post))
-        .order_by(Comment.created_at.desc())
-        .offset((page - 1) * PAGE_SIZE)
-        .limit(PAGE_SIZE)
-    ).all()
+    comments, total, page, total_pages = paginate_admin_comments(db, page)
     return templates.TemplateResponse(
         request=request,
         name="admin/comments.html",
@@ -59,12 +53,10 @@ def comment_approve(
     db: DbSession,
     _csrf: None = Depends(verify_csrf),
 ):
-    comment = db.get(Comment, comment_id)
+    comment = toggle_comment(db, comment_id)
     if comment is None:
         raise HTTPException(status_code=404, detail="评论不存在！")
 
-    comment.is_approved = not comment.is_approved
-    db.commit()
     if request.headers.get("HX-Request") == "true":
         return templates.TemplateResponse(
             request=request,
@@ -102,10 +94,7 @@ def comment_delete(
     db: DbSession,
     _csrf: None = Depends(verify_csrf),
 ):
-    comment = db.get(Comment, comment_id)
-    if comment is None:
+    if not delete_comment(db, comment_id):
         raise HTTPException(status_code=404, detail="评论不存在！")
 
-    db.delete(comment)
-    db.commit()
     return RedirectResponse("/admin/comments?deleted=1", status_code=303)

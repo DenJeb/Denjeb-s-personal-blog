@@ -10,6 +10,7 @@
 - 评论/留言/动态评论 HTMX 局部刷新，无 JavaScript 时仍可提交。
 - 只读 `/api/v1` JSON API；本地 `DEBUG=true` 时可访问 `/docs`。
 - Next.js 16 前台已实现：动态 SSR、Butterfly/Fluid 视觉、文章/动态/留言/搜索/归档；新增 `/api/v1/auth/me` 和管理员草稿预览。
+- Next.js 后台日常页面已迁移：仪表盘、文章新建/编辑、评论/动态评论审核、动态、留言、用户、图片与安全设置；管理员登录和旧文章预览仍由 FastAPI 提供。
 - CSP nonce、CSRF、数据库限流、评论审核、TOTP、异常日志。
 - 备份、内容导出/恢复、空库恢复演练脚本。
 
@@ -39,7 +40,7 @@
 - [ ] 用 `python -m app.create_admin --reset-totp` 验证丢失认证器时的恢复路径
 - [ ] 确认 SMTP 故障时可通过服务器修改 `.env`：`ADMIN_LOGIN_CODE_ENABLED=false`，重启后再登录
 - [ ] Next.js 前端：安装 Node.js 24 + npm；用 `frontend/.env.production.example` 创建 `.env.production`，设置 `API_BASE_URL` 和 `NEXT_PUBLIC_SITE_URL`（后者必须在 `npm run build` 前设置），然后 `npm ci && npm run build`
-- [ ] 安装 `deploy/nextjs.service`（只监听 `127.0.0.1:3000`）；按 `deploy/DEPLOY.md` §12 用 `deploy/nginx.staging.conf` 验收 `/api/v1/site`、`/account`、`/healthz`、`/admin`、`/admin/posts`、`/admin/login`、`/login`、`/rss.xml`
+- [ ] 安装 `deploy/nextjs.service`（只监听 `127.0.0.1:3000`）；按 `deploy/DEPLOY.md` §12 用 `deploy/nginx.staging.conf` 验收 `/api/v1/site`、`/account`、`/healthz`、`/admin`、`/admin/posts`、`/admin/comments`、`/admin/moments`、`/admin/users`、`/admin/uploads`、`/admin/security`、`/admin/login`、`/login`、`/rss.xml`
 - [ ] staging 的 FastAPI `.env` 中 `TRUSTED_HOSTS` 加 `127.0.0.1` 和 staging 域名；如果 staging 只用 HTTP，临时 `SESSION_HTTPS_ONLY=false`，正式切换恢复 `true`
 - [ ] 生产切换：备份现有 `/etc/nginx/sites-available/blog`，替换为 `deploy/nginx.conf`，`nginx -t` 通过后再 `reload`；按 `DEPLOY.md` §13 验证
 - [ ] HTTPS 下用真实浏览器验证 `__Host-blog_session`、`/login`、`/admin`、`/admin/posts` 和旧文章编辑页

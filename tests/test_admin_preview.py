@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from app.db import SessionLocal
 from app.models import BlogPost
 from app.time_utils import site_today
@@ -39,5 +41,29 @@ def test_admin_preview_renders_draft(admin_client):
         assert response.status_code == 200
         assert "Draft Preview" in response.text
         assert "正文内容" in response.text
+    finally:
+        _delete_post(post_id)
+
+
+def test_admin_preview_labels_future_post(admin_client):
+    with SessionLocal() as db:
+        post = BlogPost(
+            title="Future Preview",
+            slug="future-preview",
+            content="# 未来\n\n正文",
+            published_at=site_today() + timedelta(days=1),
+            is_published=True,
+        )
+        db.add(post)
+        db.commit()
+        db.refresh(post)
+        post_id = post.id
+
+    try:
+        response = admin_client.get(f"/admin/posts/{post_id}/preview")
+        assert response.status_code == 200
+        assert "Future Preview" in response.text
+        assert "未到日期" in response.text
+        assert "已发布" not in response.text
     finally:
         _delete_post(post_id)

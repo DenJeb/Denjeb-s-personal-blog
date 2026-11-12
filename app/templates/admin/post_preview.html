@@ -18,7 +18,7 @@
       <p>
         <small>
           {{ post.published_at }} · 约 {{ read_minutes }} 分钟 ·
-          {% if post.is_published %}已发布{% else %}草稿{% endif %}
+          {% if not post.is_published %}草稿{% elif is_public %}已发布{% else %}未到日期{% endif %}
         </small>
       </p>
     </header>

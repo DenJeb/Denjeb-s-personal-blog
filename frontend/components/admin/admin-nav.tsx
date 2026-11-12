@@ -4,15 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/admin", label: "仪表盘", legacy: false },
-  { href: "/admin/posts", label: "文章", legacy: false },
-  { href: "/admin/comments", label: "评论", legacy: true },
-  { href: "/admin/moments", label: "动态", legacy: true },
-  { href: "/admin/moment-comments", label: "动态评论", legacy: true },
-  { href: "/admin/messages", label: "留言", legacy: true },
-  { href: "/admin/users", label: "用户", legacy: true },
-  { href: "/admin/uploads", label: "图片", legacy: true },
-  { href: "/admin/security", label: "安全", legacy: true },
+  { href: "/admin", label: "仪表盘" },
+  { href: "/admin/posts", label: "文章" },
+  { href: "/admin/comments", label: "评论" },
+  { href: "/admin/moments", label: "动态" },
+  { href: "/admin/moment-comments", label: "动态评论" },
+  { href: "/admin/messages", label: "留言" },
+  { href: "/admin/users", label: "用户" },
+  { href: "/admin/uploads", label: "图片" },
+  { href: "/admin/security", label: "安全" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -28,15 +28,6 @@ export function AdminNav() {
   return (
     <nav aria-label="后台导航" className="admin-nav">
       {navItems.map((item) => {
-        if (item.legacy) {
-          // Legacy Jinja pages need a full document navigation.
-          return (
-            <a key={item.href} href={item.href}>
-              {item.label}
-            </a>
-          );
-        }
-
         const active = isActive(pathname, item.href);
         return (
           <Link

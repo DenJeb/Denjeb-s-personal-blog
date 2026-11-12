@@ -12,19 +12,15 @@ from app.csrf import verify_csrf
 from app.deps import DbSession
 from app.models import Moment
 from app.routers.admin.common import PAGE_SIZE, moment_page, page_slice
+from app.services.interactions import (
+    create_moment,
+    delete_moment,
+    update_moment,
+    validate_moment_content,
+)
 from app.templating import templates
 
 router = APIRouter()
-MOMENT_MAX_LENGTH = 2000
-
-
-def _validate_content(content: str) -> str | None:
-    body = content.strip()
-    if not body:
-        return "动态内容不能为空。"
-    if len(body) > MOMENT_MAX_LENGTH:
-        return f"动态不能超过 {MOMENT_MAX_LENGTH} 个字符。"
-    return None
 
 
 @router.get("/moments")
@@ -83,7 +79,7 @@ def moment_create(
     content: str = Form(...),
     _csrf: None = Depends(verify_csrf),
 ):
-    error = _validate_content(content)
+    error = validate_moment_content(content)
     if error is not None:
         return templates.TemplateResponse(
             request=request,
@@ -97,8 +93,7 @@ def moment_create(
             status_code=400,
         )
 
-    db.add(Moment(content=content.strip()))
-    db.commit()
+    create_moment(db, content)
     return RedirectResponse("/admin/moments?saved=1", status_code=303)
 
 
@@ -140,7 +135,7 @@ def moment_edit(
     if moment is None:
         raise HTTPException(status_code=404, detail="动态不存在！")
 
-    error = _validate_content(content)
+    error = validate_moment_content(content)
     if error is not None:
         return templates.TemplateResponse(
             request=request,
@@ -155,8 +150,7 @@ def moment_edit(
             status_code=400,
         )
 
-    moment.content = content.strip()
-    db.commit()
+    update_moment(db, moment, content)
     suffix = f"&page={page}" if page > 1 else ""
     return RedirectResponse(f"/admin/moments?saved=1{suffix}", status_code=303)
 
@@ -199,7 +193,6 @@ def moment_delete(
     if moment is None:
         raise HTTPException(status_code=404, detail="动态不存在！")
 
-    db.delete(moment)
-    db.commit()
+    delete_moment(db, moment)
     suffix = f"&page={page}" if page > 1 else ""
     return RedirectResponse(f"/admin/moments?deleted=1{suffix}", status_code=303)

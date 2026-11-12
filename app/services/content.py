@@ -8,7 +8,7 @@ import re
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.constants import MOMENT_COMMENTS_SHOWN
+from app.constants import MOMENT_COMMENTS_SHOWN, MOMENTS_PER_PAGE
 from app.models import BlogPost, Comment, Message, Moment, MomentComment
 from app.slugs import MAX_SLUG_LENGTH, slugify_text
 from app.time_utils import site_today
@@ -116,6 +116,20 @@ def related_posts(db: Session, post: BlogPost, limit: int = 3) -> list[BlogPost]
     if scored:
         return [candidate for _, candidate in scored[:limit]]
     return candidates[:limit]
+
+
+def moment_page(db: Session, moment: Moment) -> int:
+    """动态在公开时间线里的页码。"""
+    ranked = select(
+        Moment.id.label("id"),
+        func.row_number()
+        .over(order_by=(Moment.created_at.desc(), Moment.id.desc()))
+        .label("rn"),
+    ).subquery()
+    position = db.scalar(select(ranked.c.rn).where(ranked.c.id == moment.id))
+    if position is None:
+        return 1
+    return (position - 1) // MOMENTS_PER_PAGE + 1
 
 
 def reading_minutes(content: str) -> int:

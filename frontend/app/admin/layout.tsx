@@ -49,9 +49,6 @@ export default async function AdminLayout({
 
         <div className="admin-side-footer">
           <div className="admin-user">{admin.username}</div>
-          <p className="admin-side-note">
-            评论、动态、用户等仍可在旧后台管理。
-          </p>
           <Link href="/" className="admin-back">
             返回前台
           </Link>
