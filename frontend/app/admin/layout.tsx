@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { AdminLogoutButton } from "@/components/admin/admin-logout-button";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { getAdminMe } from "@/lib/api/admin";
 
@@ -54,6 +55,7 @@ export default async function AdminLayout({
           <Link href="/" className="admin-back">
             返回前台
           </Link>
+          <AdminLogoutButton />
         </div>
       </aside>
 

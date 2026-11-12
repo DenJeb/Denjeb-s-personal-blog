@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Manrope } from "next/font/google";
+import localFont from "next/font/local";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
@@ -11,14 +11,16 @@ import { THEME_COOKIE, type Theme } from "@/lib/theme";
 import "./globals.css";
 import "./pygments.css";
 
-const manrope = Manrope({
+const manrope = localFont({
+  src: "./fonts/Manrope-Variable.woff2",
   variable: "--font-manrope",
-  subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: "./fonts/GeistMono-Variable.woff2",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -60,11 +62,11 @@ export default async function RootLayout({
       lang="zh-CN"
       data-theme={theme}
       data-scroll-behavior="smooth"
-      className={`${manrope.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${manrope.variable} ${geistMono.variable}`}
     >
-      <body className="flex min-h-full flex-col">
+      <body>
         <SiteHeader />
-        <main className="flex-1">{children}</main>
+        <main>{children}</main>
         <SiteFooter />
       </body>
     </html>

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { headers } from "next/headers";
+import { cache } from "react";
 
 import { api } from "./client";
 import type { components } from "./schema";
@@ -14,7 +15,7 @@ export type ArchiveResponse = components["schemas"]["ArchiveResponse"];
 export type MomentListResponse = components["schemas"]["MomentListResponse"];
 export type MessageListResponse = components["schemas"]["MessageListResponse"];
 
-export async function getSiteInfo(): Promise<SiteInfo> {
+async function fetchSiteInfo(): Promise<SiteInfo> {
   const { data, error } = await api.GET("/api/v1/site", {
     cache: "no-store",
   });
@@ -26,7 +27,7 @@ export async function getSiteInfo(): Promise<SiteInfo> {
   return data;
 }
 
-export async function getCurrentUser(): Promise<{ name: string } | null> {
+async function fetchCurrentUser(): Promise<{ name: string } | null> {
   try {
     // Forward the raw Cookie header. Re-serializing via cookies().toString()
     // can change the signed session value, which the backend rejects.
@@ -42,7 +43,7 @@ export async function getCurrentUser(): Promise<{ name: string } | null> {
   }
 }
 
-export async function getPosts(
+async function fetchPosts(
   params: {
     page?: number;
     perPage?: number;
@@ -69,7 +70,7 @@ export async function getPosts(
   return data;
 }
 
-export async function getPost(identifier: string): Promise<PostDetail | null> {
+async function fetchPost(identifier: string): Promise<PostDetail | null> {
   const { data, response } = await api.GET("/api/v1/posts/{identifier}", {
     params: { path: { identifier } },
     cache: "no-store",
@@ -86,7 +87,7 @@ export async function getPost(identifier: string): Promise<PostDetail | null> {
   return data;
 }
 
-export async function getPostComments(
+async function fetchPostComments(
   identifier: string,
   page = 1,
 ): Promise<CommentListResponse> {
@@ -105,7 +106,7 @@ export async function getPostComments(
   return data;
 }
 
-export async function getTags(): Promise<TagListResponse> {
+async function fetchTags(): Promise<TagListResponse> {
   const { data, error } = await api.GET("/api/v1/tags", {
     cache: "no-store",
   });
@@ -117,7 +118,7 @@ export async function getTags(): Promise<TagListResponse> {
   return data;
 }
 
-export async function getArchive(): Promise<ArchiveResponse> {
+async function fetchArchive(): Promise<ArchiveResponse> {
   const { data, error } = await api.GET("/api/v1/archive", {
     cache: "no-store",
   });
@@ -129,7 +130,7 @@ export async function getArchive(): Promise<ArchiveResponse> {
   return data;
 }
 
-export async function getSearch(
+async function fetchSearch(
   q: string,
   page = 1,
 ): Promise<PostListResponse> {
@@ -145,7 +146,7 @@ export async function getSearch(
   return data;
 }
 
-export async function getMoments(page = 1): Promise<MomentListResponse> {
+async function fetchMoments(page = 1): Promise<MomentListResponse> {
   const { data, error } = await api.GET("/api/v1/moments", {
     params: { query: { page } },
     cache: "no-store",
@@ -158,7 +159,7 @@ export async function getMoments(page = 1): Promise<MomentListResponse> {
   return data;
 }
 
-export async function getGuestbook(
+async function fetchGuestbook(
   page = 1,
 ): Promise<MessageListResponse> {
   const { data, error } = await api.GET("/api/v1/guestbook", {
@@ -172,3 +173,16 @@ export async function getGuestbook(
 
   return data;
 }
+
+// React cache() 只在单次请求/渲染内去重：文章页的 generateMetadata 和页面、
+// 顶栏和页面里的 getSiteInfo/getCurrentUser 共享同一份结果，不会重复请求 FastAPI。
+export const getSiteInfo = cache(fetchSiteInfo);
+export const getCurrentUser = cache(fetchCurrentUser);
+export const getPosts = cache(fetchPosts);
+export const getPost = cache(fetchPost);
+export const getPostComments = cache(fetchPostComments);
+export const getTags = cache(fetchTags);
+export const getArchive = cache(fetchArchive);
+export const getSearch = cache(fetchSearch);
+export const getMoments = cache(fetchMoments);
+export const getGuestbook = cache(fetchGuestbook);

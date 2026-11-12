@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+<!--
+========== 通用 HTTP 错误页 ==========
+-->
+
+{% block title %}{{ status_code }} · {{ app_name }}{% endblock %}
+{% block description %}{{ detail }}{% endblock %}
+{% block main_class %}page-narrow{% endblock %}
+
+{% block content %}
+  <hgroup>
+    <h1>{{ status_code }}</h1>
+    <p>{{ detail }}</p>
+  </hgroup>
+  <p><a href="/">返回首页</a></p>
+{% endblock %}

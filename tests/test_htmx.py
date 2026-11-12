@@ -54,9 +54,8 @@ def test_pagination_uses_htmx_boost(client):
             db.commit()
 
 
-def test_comment_htmx_partial(user_client, monkeypatch):
+def test_comment_htmx_partial(user_client):
     _cleanup_comments()
-    monkeypatch.setattr("app.routers.public.send_pending_notifications", lambda: None)
     try:
         token = csrf_token(user_client.get("/posts/1").text)
         response = user_client.post(

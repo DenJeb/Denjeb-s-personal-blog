@@ -7,6 +7,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { getPosts, getTags } from "@/lib/api/fetchers";
 import { pageMetadata } from "@/lib/page-metadata";
 import { parsePage } from "@/lib/parse-page";
+import { firstParam } from "@/lib/search-params";
 
 export const metadata: Metadata = pageMetadata({
   title: "标签",
@@ -17,9 +18,14 @@ export const metadata: Metadata = pageMetadata({
 export default async function TagsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tag?: string; page?: string }>;
+  searchParams: Promise<{
+    tag?: string | string[];
+    page?: string | string[];
+  }>;
 }) {
-  const { tag, page: rawPage } = await searchParams;
+  const { tag: rawTag, page: rawPage } = await searchParams;
+  const tag = firstParam(rawTag);
+  const page = parsePage(firstParam(rawPage));
 
   if (!tag) {
     const tags = await getTags();
@@ -51,7 +57,6 @@ export default async function TagsPage({
     );
   }
 
-  const page = parsePage(rawPage);
   const data = await getPosts({ tag, page });
 
   return (

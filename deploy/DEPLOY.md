@@ -37,10 +37,12 @@ cp .env.production.example .env
 - `SECRET_KEY` 用随机长串
 - `ADMIN_EMAIL` 填唯一管理员邮箱
 - `SITE_URL=https://yourdomain.com`，用于邮件通知里的链接
+- `SITE_TIMEZONE=Asia/Shanghai`，内容时间与文章发布判断使用的站点时区；应用会把 MySQL 会话时区也设为这个值
+- `LEGACY_PUBLIC_SITE_ENABLED=false`，生产环境公开页面由 Next.js 提供；旧 FastAPI 公开页面只用于开发和测试
 - `EMAIL_ENABLED=true`；代码默认开启，测试环境会自动关闭
 - `ADMIN_LOGIN_CODE_ENABLED=true`；后台登录默认要求邮箱验证码
 - `DATABASE_URL` 填生产数据库
-- `SMTP_*` 填真实邮件配置
+- `SMTP_*` 填真实邮件配置；正式发信前用真实收件箱测试验证码/通知，自有域名发信需配置 SPF/DKIM/DMARC
 - `MYSQLDUMP_PATH=/usr/bin/mysqldump`
 
 ## 4. 数据库
@@ -83,7 +85,7 @@ python -m app.content_io import --replace
 
 内容备份 JSON 不在 Git 仓库中，需要单独安全传输到 `/srv/blog/content/content-backup.json`。
 
-新评论、动态评论和留言会写入通知 outbox，并在请求结束后尝试发送。SMTP 暂时不可用或需要补发时：
+新评论、动态评论和留言会写入通知 outbox，由后台 timer 异步发送，不阻塞请求线程。SMTP 暂时不可用或需要立即补发时：
 
 ```bash
 python -m app.services.notifications send --limit 50
@@ -99,13 +101,28 @@ sudo systemctl enable --now blog-notifications.timer
 systemctl list-timers blog-notifications.timer
 ```
 
-它会每 10 分钟尝试发送一次未成功的通知；SMTP 恢复后无需手动补发。
+它会每 2 分钟尝试发送一次未成功的通知；SMTP 恢复后无需手动补发。
 
-完成后把目录交给服务用户，并保护 `.env`：
+服务用户只需要读代码和写运行时目录。不要 `chown -R` 整个 `/srv/blog`，否则后续普通部署用户执行 `git pull`、`pip install`、`npm ci`、`npm run build` 会因没有写权限失败。
 
 ```bash
-sudo chown -R www-data:www-data /srv/blog
-sudo chmod 600 /srv/blog/.env
+sudo mkdir -p /srv/blog/app/static/uploads /srv/blog/backups /srv/blog/content
+sudo chown -R www-data:www-data \
+    /srv/blog/app/static/uploads \
+    /srv/blog/backups \
+    /srv/blog/content
+
+# .env 由部署用户持有，服务用户组可读
+sudo chgrp www-data /srv/blog/.env
+sudo chmod 640 /srv/blog/.env
+```
+
+代码、`.venv`、`frontend/node_modules` 保持部署用户所有；`www-data` 默认有读/执行权限即可。`frontend/.next/cache` 需要服务用户可写，在 §12/§13 首次构建后处理。
+
+需要手动执行会写 `uploads/`、`backups/` 或 `content/` 的命令时（例如 `python -m app.backup`、`python -m app.content_io export`），用服务用户运行：
+
+```bash
+sudo -u www-data -H /srv/blog/.venv/bin/python -m app.backup
 ```
 
 ## 5. systemd
@@ -173,7 +190,30 @@ sudo systemctl enable --now blog-backup.timer
 systemctl list-timers blog-backup.timer
 ```
 
-`app/backup.py` 会把 MySQL、上传图片和内容 JSON 写到 `/srv/blog/backups/<时间戳>/`，默认只保留最近 `BACKUP_KEEP=14` 个备份，并把备份目录权限设为 `700`。请把 `backups/` 定期复制到另一台机器或对象存储。
+`app/backup.py` 会把 MySQL、上传图片和内容 JSON 写到 `/srv/blog/backups/<时间戳>/`，默认只保留最近 `BACKUP_KEEP=14` 个备份，并把备份目录权限设为 `700`。
+
+### 8.1 异地备份（建议）
+
+只放本机会在服务器磁盘损坏时一起丢失。用 rclone 同步到对象存储或其他机器：
+
+```bash
+sudo apt install -y rclone
+sudo rclone config --config /etc/rclone.conf
+sudo chown root:www-data /etc/rclone.conf
+sudo chmod 640 /etc/rclone.conf
+
+sudo cp deploy/blog-offsite-backup.env.example /etc/default/blog-offsite-backup
+sudo editor /etc/default/blog-offsite-backup   # 填 RCLONE_REMOTE
+
+sudo cp deploy/blog-offsite-backup.service /etc/systemd/system/
+sudo cp deploy/blog-offsite-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now blog-offsite-backup.timer
+sudo systemctl start blog-offsite-backup.service
+journalctl -u blog-offsite-backup.service -n 50
+```
+
+`rclone sync` 会把本地 `backups/` 镜像到远端；本地保留 14 份，远端也会随之删除旧文件。需要保留更久时改用 `rclone copy` 或调整 `BACKUP_KEEP`。
 
 ## 9. 恢复演练
 
@@ -204,19 +244,21 @@ curl -I https://yourdomain.com/admin
 curl -I https://yourdomain.com/admin/posts
 curl -I https://yourdomain.com/admin/login
 curl -I https://yourdomain.com/login
+curl -I https://yourdomain.com/account
 curl -I https://yourdomain.com/static/css/pico.min.css
 ```
 
 检查：
 
-- `/healthz` 返回 `{"status":"ok"}`
+- `/healthz` 由 Next.js 返回 `{"status":"ok"}`，并会同时检查 FastAPI；FastAPI 异常时返回 503
 - HTTPS 正常，HTTP 自动跳转
 - `/`、`/posts` 由 Next.js 提供；`/admin`、`/admin/posts` 未登录时显示管理员登录提示
 - `/admin/login` 由 FastAPI 提供，能正常登录
 - `/login` 由 Next.js 提供，密码登录能写入 `__Host-blog_session`
+- `/account` 由 Next.js 提供，登录后能看到账号信息
 - 注册验证码能收到邮件
 - 图片上传和显示正常
-- 备份目录生成成功
+- 备份目录生成成功，异地同步成功
 
 ## 11. 更新流程
 
@@ -231,7 +273,18 @@ sudo systemctl restart blog
 cd /srv/blog/frontend
 npm ci
 npm run build
+sudo mkdir -p /srv/blog/frontend/.next/cache
+sudo chown -R www-data:www-data /srv/blog/frontend/.next/cache
 sudo systemctl restart nextjs
+```
+
+以上命令以部署用户执行；代码、`.venv`、`node_modules` 必须归部署用户所有，`www-data` 只保留读权限和 §4 中那几个运行时目录的写权限。
+
+如果之前已经执行过 `sudo chown -R www-data:www-data /srv/blog`，先改回来：
+
+```bash
+sudo chown -R "$USER":"$USER" /srv/blog
+# 再按 §4 只授权 uploads / backups / content 和 .env
 ```
 
 `NEXT_PUBLIC_SITE_URL` 只在构建时生效，生产环境更新后必须重新 `npm run build`。
@@ -248,9 +301,9 @@ GitHub Actions 会在 push / PR 时用 MySQL 8 测试库执行同样的检查；
 
 ## 12. Next.js 前台与后台（staging）
 
-公开前台、密码登录页 `/login`、后台仪表盘 `/admin` 和文章列表 `/admin/posts` 已切到 Next.js；后台登录 `/admin/login`、文章编辑/审核/用户等剩余后台页、`/login/code`、注册/找回密码/账户页、`/api`、`/static` 和 feed 仍由 FastAPI 提供。
+公开前台、密码登录页 `/login`、账户页 `/account`、后台仪表盘 `/admin` 和文章列表 `/admin/posts` 已切到 Next.js；后台登录 `/admin/login`、文章编辑/审核/用户等剩余后台页、`/login/code`、注册/找回密码、`/account/delete`、`/api`、`/static` 和 feed 仍由 FastAPI 提供。
 
-先安装 Node.js 24 和 npm（例如 NodeSource 或 nvm），然后在 `/srv/blog/frontend` 创建 `.env.production`：
+先安装 Node.js 24 和 npm。建议用 NodeSource 安装系统级 Node.js（`nextjs.service` 使用 `/usr/bin/npm`）；如果坚持用 nvm，需要把 `ExecStart` 改成 `www-data` 可执行的绝对路径。然后在 `/srv/blog/frontend` 创建 `.env.production`：
 
 ```env
 API_BASE_URL=http://127.0.0.1:8000
@@ -265,7 +318,11 @@ NEXT_PUBLIC_SITE_URL=https://staging.yourdomain.com
 cd /srv/blog/frontend
 npm ci
 npm run build
+sudo mkdir -p /srv/blog/frontend/.next/cache
+sudo chown -R www-data:www-data /srv/blog/frontend/.next/cache
 ```
+
+如果 staging 只有 HTTP，把 `NEXT_PUBLIC_SITE_URL` 改成 `http://staging.yourdomain.com`，否则 canonical/OG 会指向 https。
 
 同时确认 FastAPI 的 `.env` 里 `TRUSTED_HOSTS` 包含 `127.0.0.1` 和 `staging.yourdomain.com`；否则 Next.js 服务端请求会被 TrustedHostMiddleware 以 400 拒绝。
 
@@ -296,9 +353,11 @@ curl -I https://staging.yourdomain.com/admin
 curl -I https://staging.yourdomain.com/admin/posts
 curl -I https://staging.yourdomain.com/admin/login
 curl -I https://staging.yourdomain.com/login
+curl -I https://staging.yourdomain.com/account
+curl -s https://staging.yourdomain.com/healthz
 ```
 
-`/api/v1/site` 应返回 JSON；`/admin`、`/admin/posts` 应返回 Next.js 页面（未登录时显示管理员登录提示，登录后显示仪表盘/文章列表）；`/admin/login` 应返回 FastAPI 的 200，而不是 Next.js 404。
+`/api/v1/site` 应返回 JSON；`/admin`、`/admin/posts` 应返回 Next.js 页面（未登录时显示管理员登录提示，登录后显示仪表盘/文章列表）；`/admin/login` 应返回 FastAPI 的 200，而不是 Next.js 404；`/account` 未登录时会跳到登录页；`/healthz` 应返回 `{"status":"ok"}`。
 
 staging 回滚时删除 staging server 的 Next 反代，或把 `/` 重新指回 `127.0.0.1:8000`。生产配置已包含 Next.js 路由，切换步骤见 §13。
 
@@ -327,7 +386,8 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ```bash
 npm ci
 npm run build
-sudo chown -R www-data:www-data /srv/blog/frontend
+sudo mkdir -p /srv/blog/frontend/.next/cache
+sudo chown -R www-data:www-data /srv/blog/frontend/.next/cache
 sudo cp /srv/blog/deploy/nextjs.service /etc/systemd/system/nextjs.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now nextjs
@@ -356,9 +416,9 @@ sudo systemctl reload nginx
 
 | 路径 | 上游 |
 |---|---|
-| `/`、`/login`、`/admin`、`/admin/posts` | Next.js `127.0.0.1:3000` |
+| `/`、`/login`、`/account`、`/admin`、`/admin/posts` | Next.js `127.0.0.1:3000` |
 | `/api/`、`/static/`、`/admin/login`、其余 `/admin/*` | FastAPI `127.0.0.1:8000` |
-| `/register`、`/forgot-password`、`/reset-password`、`/account`、`/login/*` | FastAPI `127.0.0.1:8000` |
+| `/register`、`/forgot-password`、`/reset-password`、`/account/*`、`/login/*` | FastAPI `127.0.0.1:8000` |
 
 ### 13.3 HTTPS 验收
 

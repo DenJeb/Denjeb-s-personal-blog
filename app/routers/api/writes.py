@@ -4,7 +4,6 @@
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     HTTPException,
     Request,
@@ -28,9 +27,6 @@ from app.services.interactions import (
     create_comment,
     create_message,
     create_moment_comment,
-)
-from app.services.notifications import (
-    send_pending as send_pending_notifications,
 )
 
 router = APIRouter()
@@ -71,7 +67,6 @@ def post_comment(
     payload: PostCommentRequest,
     request: Request,
     db: DbSession,
-    background_tasks: BackgroundTasks,
     _csrf: None = Depends(verify_csrf_header),
 ):
     post = find_post(db, identifier)
@@ -87,7 +82,6 @@ def post_comment(
 
     result = create_comment(db, post, author, actor_key, user_id, payload.content)
     _raise_for_result(result)
-    background_tasks.add_task(send_pending_notifications)
     return WriteResponse(ok=True, message=result.message)
 
 
@@ -101,7 +95,6 @@ def moment_comment(
     payload: ContentRequest,
     request: Request,
     db: DbSession,
-    background_tasks: BackgroundTasks,
     _csrf: None = Depends(verify_csrf_header),
 ):
     moment = db.get(Moment, moment_id)
@@ -119,7 +112,6 @@ def moment_comment(
         db, moment, author, actor_key, user_id, payload.content
     )
     _raise_for_result(result)
-    background_tasks.add_task(send_pending_notifications)
     return WriteResponse(ok=True, message=result.message)
 
 
@@ -132,7 +124,6 @@ def guestbook(
     payload: ContentRequest,
     request: Request,
     db: DbSession,
-    background_tasks: BackgroundTasks,
     _csrf: None = Depends(verify_csrf_header),
 ):
     user = getattr(request.state, "user", None)
@@ -147,5 +138,4 @@ def guestbook(
 
     result = create_message(db, user, payload.content)
     _raise_for_result(result)
-    background_tasks.add_task(send_pending_notifications)
     return WriteResponse(ok=True, message=result.message)

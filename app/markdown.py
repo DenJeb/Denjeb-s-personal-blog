@@ -49,8 +49,7 @@ def _heading_text(token) -> str:
     ).strip()
 
 
-def render_markdown_with_toc(text: str) -> tuple[str, list[dict]]:
-    tokens = md.parse(text)
+def _collect_headings(tokens) -> list[dict]:
     headings: list[dict] = []
     used: set[str] = set()
 
@@ -79,6 +78,12 @@ def render_markdown_with_toc(text: str) -> tuple[str, list[dict]]:
             }
         )
 
+    return headings
+
+
+def render_markdown_with_toc(text: str) -> tuple[str, list[dict]]:
+    tokens = md.parse(text)
+    headings = _collect_headings(tokens)
     html = md.renderer.render(tokens, md.options, {})
     html = html.replace("<img ", '<img loading="lazy" decoding="async" ')
     return html, headings
@@ -90,5 +95,4 @@ def render_markdown(text: str) -> str:
 
 
 def headings_for(text: str) -> list[dict]:
-    _, headings = render_markdown_with_toc(text)
-    return headings
+    return _collect_headings(md.parse(text))

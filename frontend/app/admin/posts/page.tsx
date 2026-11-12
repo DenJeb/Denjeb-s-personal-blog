@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Pagination } from "@/components/ui/pagination";
 import { getAdminPosts } from "@/lib/api/admin";
 import { parsePage } from "@/lib/parse-page";
+import { firstParam } from "@/lib/search-params";
 
 export const metadata: Metadata = {
   title: "文章 · 后台",
@@ -12,10 +13,10 @@ export const metadata: Metadata = {
 export default async function AdminPostsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string | string[] }>;
 }) {
   const { page: rawPage } = await searchParams;
-  const page = parsePage(rawPage);
+  const page = parsePage(firstParam(rawPage));
   const data = await getAdminPosts(page);
   if (!data) {
     // The parent layout renders the login prompt for anonymous visitors.
@@ -38,46 +39,50 @@ export default async function AdminPostsPage({
         <div className="glass admin-empty">暂无文章。</div>
       ) : (
         <div className="admin-table">
-          {data.items.map((post) => (
-            <article key={post.id} className="glass admin-row">
-              <div className="admin-row-main">
-                <div className="admin-row-title">
-                  <a href={`/admin/posts/${post.id}/edit`}>{post.title}</a>
-                  <span
-                    className={`admin-status ${
-                      post.is_published ? "is-published" : "is-draft"
-                    }`}
-                  >
-                    {post.is_published ? "已发布" : "草稿"}
-                  </span>
-                </div>
-                <div className="admin-row-meta">
-                  <time dateTime={post.published_at}>{post.published_at}</time>
-                  <span>{post.reading_minutes} 分钟</span>
-                  {post.tags.map((tag) => (
-                    <span key={tag}>#{tag}</span>
-                  ))}
-                </div>
-              </div>
+          {data.items.map((post) => {
+            const status = !post.is_published
+              ? { label: "草稿", className: "is-draft" }
+              : post.is_public
+                ? { label: "已发布", className: "is-published" }
+                : { label: "未到日期", className: "is-scheduled" };
 
-              <div className="admin-row-actions">
-                <a
-                  href={`/admin/posts/${post.id}/edit`}
-                  className="btn btn-ghost"
-                >
-                  编辑
-                </a>
-                <a
-                  href={`/admin/posts/${post.id}/preview`}
-                  className="btn btn-ghost"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  预览
-                </a>
-              </div>
-            </article>
-          ))}
+            return (
+              <article key={post.id} className="glass admin-row">
+                <div className="admin-row-main">
+                  <div className="admin-row-title">
+                    <a href={`/admin/posts/${post.id}/edit`}>{post.title}</a>
+                    <span className={`admin-status ${status.className}`}>
+                      {status.label}
+                    </span>
+                  </div>
+                  <div className="admin-row-meta">
+                    <time dateTime={post.published_at}>{post.published_at}</time>
+                    <span>{post.reading_minutes} 分钟</span>
+                    {post.tags.map((tag) => (
+                      <span key={tag}>#{tag}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="admin-row-actions">
+                  <a
+                    href={`/admin/posts/${post.id}/edit`}
+                    className="btn btn-ghost"
+                  >
+                    编辑
+                  </a>
+                  <a
+                    href={`/admin/posts/${post.id}/preview`}
+                    className="btn btn-ghost"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    预览
+                  </a>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
 

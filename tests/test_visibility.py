@@ -8,6 +8,7 @@ from sqlalchemy import delete
 
 from app.db import SessionLocal
 from app.models import BlogPost
+from app.time_utils import site_today
 
 FUTURE_TITLE = "__pytest_future_post__"
 DRAFT_TITLE = "__pytest_draft_post__"
@@ -56,7 +57,7 @@ def test_future_post_is_hidden(client, admin_client):
     _cleanup()
     post_id = _create_post(
         FUTURE_TITLE,
-        date.today() + timedelta(days=5),
+        site_today() + timedelta(days=5),
         is_published=True,
     )
     try:
@@ -69,7 +70,7 @@ def test_draft_post_is_hidden(client, admin_client):
     _cleanup()
     post_id = _create_post(
         DRAFT_TITLE,
-        date.today() - timedelta(days=1),
+        site_today() - timedelta(days=1),
         is_published=False,
     )
     try:

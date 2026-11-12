@@ -19,6 +19,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
+from app.time_utils import site_now_naive
 
 
 class BlogPost(Base):
@@ -33,6 +34,12 @@ class BlogPost(Base):
     content: Mapped[str] = mapped_column(Text)
     content_html: Mapped[str | None] = mapped_column(Text, nullable=True)
     published_at: Mapped[date] = mapped_column(Date, index=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=site_now_naive,
+        server_default=func.now(),
+        onupdate=site_now_naive,
+    )
     tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     is_published: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default=true(), index=True
@@ -58,7 +65,9 @@ class Comment(Base):
     is_approved: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=false(), index=True
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=site_now_naive, server_default=func.now()
+    )
 
     post: Mapped["BlogPost"] = relationship(back_populates="comments")
 
@@ -69,7 +78,7 @@ class Moment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), index=True
+        DateTime, default=site_now_naive, server_default=func.now(), index=True
     )
 
     comments: Mapped[list["MomentComment"]] = relationship(
@@ -92,7 +101,9 @@ class MomentComment(Base):
     is_approved: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=false(), index=True
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=site_now_naive, server_default=func.now()
+    )
 
     moment: Mapped["Moment"] = relationship(back_populates="comments")
 
@@ -107,7 +118,7 @@ class Message(Base):
     author_name: Mapped[str] = mapped_column(String(50))
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), index=True
+        DateTime, default=site_now_naive, server_default=func.now(), index=True
     )
 
 
@@ -126,7 +137,9 @@ class User(Base):
         Boolean, default=True, server_default=true(), index=True
     )
     session_version: Mapped[int] = mapped_column(default=0, server_default="0")
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=site_now_naive, server_default=func.now()
+    )
 
 
 class AdminUser(Base):
@@ -140,7 +153,9 @@ class AdminUser(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     session_version: Mapped[int] = mapped_column(default=0, server_default="0")
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=site_now_naive, server_default=func.now()
+    )
 
 
 class VerificationCode(Base):
@@ -153,7 +168,9 @@ class VerificationCode(Base):
     payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     attempts: Mapped[int] = mapped_column(default=0, server_default="0")
     expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=site_now_naive, server_default=func.now()
+    )
 
 
 class EmailRegistrationBlock(Base):
@@ -162,7 +179,9 @@ class EmailRegistrationBlock(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     blocked_until: Mapped[datetime] = mapped_column(DateTime, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=site_now_naive, server_default=func.now()
+    )
 
 
 class RateLimitEvent(Base):
@@ -171,7 +190,7 @@ class RateLimitEvent(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     bucket: Mapped[str] = mapped_column(String(100), index=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, index=True, server_default=func.now()
+        DateTime, default=site_now_naive, index=True, server_default=func.now()
     )
 
 
@@ -184,7 +203,7 @@ class NotificationOutbox(Base):
     subject: Mapped[str] = mapped_column(String(200))
     body: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, index=True, server_default=func.now()
+        DateTime, default=site_now_naive, index=True, server_default=func.now()
     )
     sent_at: Mapped[datetime | None] = mapped_column(
         DateTime, nullable=True, index=True

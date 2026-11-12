@@ -1,7 +1,6 @@
-from datetime import date
-
 from app.db import SessionLocal
 from app.models import BlogPost
+from app.time_utils import site_today
 
 
 def _create_draft() -> int:
@@ -10,7 +9,7 @@ def _create_draft() -> int:
             title="Draft Preview",
             slug="draft-preview",
             content="# 标题\n\n正文内容",
-            published_at=date.today(),
+            published_at=site_today(),
             is_published=False,
         )
         db.add(post)

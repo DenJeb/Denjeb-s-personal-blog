@@ -10,7 +10,9 @@ import { RelatedPosts } from "@/components/post/related-posts";
 import { Toc } from "@/components/post/toc";
 import { Pagination } from "@/components/ui/pagination";
 import { getCurrentUser, getPost, getPostComments } from "@/lib/api/fetchers";
+import { serializeJsonLd } from "@/lib/json-ld";
 import { parsePage } from "@/lib/parse-page";
+import { firstParam } from "@/lib/search-params";
 import { siteConfig } from "@/lib/site-config";
 
 export async function generateMetadata({
@@ -53,7 +55,7 @@ export default async function PostPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ comment_page?: string }>;
+  searchParams: Promise<{ comment_page?: string | string[] }>;
 }) {
   const { slug } = await params;
   const { comment_page: rawCommentPage } = await searchParams;
@@ -67,7 +69,7 @@ export default async function PostPage({
     permanentRedirect(`/posts/${post.slug}`);
   }
 
-  const commentPage = parsePage(rawCommentPage);
+  const commentPage = parsePage(firstParam(rawCommentPage));
   const [comments, user] = await Promise.all([
     getPostComments(post.slug, commentPage),
     getCurrentUser(),
@@ -79,7 +81,7 @@ export default async function PostPage({
     headline: post.title,
     description: post.summary,
     datePublished: post.published_at,
-    dateModified: post.published_at,
+    dateModified: post.updated_at,
     author: { "@type": "Person", name: siteConfig.author },
     mainEntityOfPage: `${siteConfig.url}/posts/${post.slug}`,
     keywords: post.tags.join(", "),
@@ -125,7 +127,7 @@ export default async function PostPage({
           <script
             type="application/ld+json"
             nonce={nonce}
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
           />
 
           <PostBody html={post.content_html} />

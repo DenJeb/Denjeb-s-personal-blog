@@ -3,6 +3,7 @@
 """
 
 import argparse
+import logging
 from datetime import UTC, datetime
 
 from sqlalchemy import select
@@ -15,6 +16,8 @@ from app.models import Comment, Message, MomentComment, NotificationOutbox
 
 MAX_ATTEMPTS = 5
 EXCERPT_LENGTH = 200
+
+logger = logging.getLogger(__name__)
 
 
 def _excerpt(text: str) -> str:
@@ -88,7 +91,7 @@ def send_pending(sender=None, limit: int = 20) -> int:
     now = datetime.now(UTC).replace(tzinfo=None)
 
     with SessionLocal() as db:
-        rows = db.scalars(
+        statement = (
             select(NotificationOutbox)
             .where(
                 NotificationOutbox.sent_at.is_(None),
@@ -96,7 +99,11 @@ def send_pending(sender=None, limit: int = 20) -> int:
             )
             .order_by(NotificationOutbox.created_at.asc(), NotificationOutbox.id.asc())
             .limit(limit)
-        ).all()
+        )
+        # 同一时间可能有手动命令和 timer 同时发送，锁住选中的行避免重复发信。
+        if db.get_bind().dialect.name in {"mysql", "mariadb", "postgresql"}:
+            statement = statement.with_for_update(skip_locked=True)
+        rows = db.scalars(statement).all()
 
         for row in rows:
             row.attempts += 1
@@ -111,6 +118,14 @@ def send_pending(sender=None, limit: int = 20) -> int:
                 sent += 1
             elif row.last_error is None:
                 row.last_error = "发送失败"
+
+            if not delivered and row.attempts >= MAX_ATTEMPTS:
+                logger.error(
+                    "Notification %s failed after %s attempts: %s",
+                    row.id,
+                    row.attempts,
+                    row.last_error,
+                )
 
         db.commit()
     return sent

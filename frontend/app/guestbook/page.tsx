@@ -4,8 +4,10 @@ import { WriteForm } from "@/components/forms/write-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { getCurrentUser, getGuestbook } from "@/lib/api/fetchers";
+import { formatDateTime } from "@/lib/date";
 import { pageMetadata } from "@/lib/page-metadata";
 import { parsePage } from "@/lib/parse-page";
+import { firstParam } from "@/lib/search-params";
 
 export const metadata: Metadata = pageMetadata({
   title: "留言",
@@ -16,10 +18,10 @@ export const metadata: Metadata = pageMetadata({
 export default async function GuestbookPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string | string[] }>;
 }) {
   const { page: rawPage } = await searchParams;
-  const page = parsePage(rawPage);
+  const page = parsePage(firstParam(rawPage));
   const [data, user] = await Promise.all([
     getGuestbook(page),
     getCurrentUser(),
@@ -50,7 +52,7 @@ export default async function GuestbookPage({
               <div className="guestbook-author">{message.author_name}</div>
               <div className="guestbook-text">{message.content}</div>
               <time className="guestbook-time" dateTime={message.created_at}>
-                {message.created_at}
+                {formatDateTime(message.created_at)}
               </time>
             </article>
           ))}

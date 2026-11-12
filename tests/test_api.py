@@ -78,6 +78,7 @@ def test_post_detail_by_slug_and_id(client):
     assert by_slug.status_code == 200
     payload = by_slug.json()
     assert payload["slug"] == slug
+    assert "updated_at" in payload
     assert payload["content"]
     assert payload["content_html"]
     assert isinstance(payload["toc"], list)

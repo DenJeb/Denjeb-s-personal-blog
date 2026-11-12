@@ -208,7 +208,12 @@ def registration_is_blocked(db: Session, email: str) -> bool:
 
 
 def safe_next(next_url: str) -> str:
-    if next_url.startswith("/") and not next_url.startswith("//"):
+    if (
+        next_url.startswith("/")
+        and not next_url.startswith("//")
+        and "\\" not in next_url
+        and not any(ord(char) < 32 or ord(char) == 127 for char in next_url)
+    ):
         return next_url
     return "/"
 

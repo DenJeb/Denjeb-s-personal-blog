@@ -160,6 +160,7 @@ def post_detail(identifier: str, db: DbSession):
         **_post_summary(post).model_dump(),
         content=post.content,
         content_html=content_html,
+        updated_at=post.updated_at,
         toc=toc,
         previous_post=_post_link(previous_post) if previous_post else None,
         next_post=_post_link(next_post) if next_post else None,

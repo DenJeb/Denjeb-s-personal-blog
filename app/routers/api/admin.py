@@ -2,10 +2,11 @@
 ========== 后台 JSON API（Phase 3a：仪表盘与文章读取） ==========
 """
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 
 from app.auth import CurrentAdminApi
+from app.csrf import verify_csrf_header
 from app.deps import DbSession
 from app.models import BlogPost, Comment, Message, Moment, MomentComment, User
 from app.routers.admin.common import PAGE_SIZE, page_slice
@@ -16,8 +17,10 @@ from app.schemas.admin import (
     AdminPostList,
     AdminPostSummary,
 )
+from app.schemas.auth import LogoutResponse
 from app.schemas.public import PageMeta
 from app.services.content import reading_minutes
+from app.time_utils import site_today
 
 router = APIRouter()
 
@@ -30,6 +33,7 @@ def _summary(post: BlogPost) -> AdminPostSummary:
         summary=post.summary,
         published_at=post.published_at,
         is_published=post.is_published,
+        is_public=post.is_published and post.published_at <= site_today(),
         tags=list(post.tags or []),
         reading_minutes=reading_minutes(post.content),
     )
@@ -44,6 +48,24 @@ def _meta(page: int, per_page: int, total: int, total_pages: int) -> PageMeta:
         has_prev=page > 1,
         has_next=page < total_pages,
     )
+
+
+@router.post("/admin/logout", response_model=LogoutResponse, name="admin_api_logout")
+def admin_logout(
+    request: Request,
+    _csrf: None = Depends(verify_csrf_header),
+):
+    for key in (
+        "admin_user_id",
+        "admin_version",
+        "pending_admin_id",
+        "pending_admin_version",
+        "pending_admin_at",
+        "pending_admin_login_code",
+        "pending_totp_secret",
+    ):
+        request.session.pop(key, None)
+    return LogoutResponse(ok=True)
 
 
 @router.get("/admin/me", response_model=AdminMe, name="admin_api_me")

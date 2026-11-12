@@ -6,6 +6,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { getCurrentUser, getMoments } from "@/lib/api/fetchers";
 import { pageMetadata } from "@/lib/page-metadata";
 import { parsePage } from "@/lib/parse-page";
+import { firstParam } from "@/lib/search-params";
 
 export const metadata: Metadata = pageMetadata({
   title: "动态",
@@ -16,10 +17,10 @@ export const metadata: Metadata = pageMetadata({
 export default async function MomentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string | string[] }>;
 }) {
   const { page: rawPage } = await searchParams;
-  const page = parsePage(rawPage);
+  const page = parsePage(firstParam(rawPage));
   const [data, user] = await Promise.all([
     getMoments(page),
     getCurrentUser(),

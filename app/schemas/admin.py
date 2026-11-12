@@ -32,6 +32,7 @@ class AdminPostSummary(BaseModel):
     summary: str
     published_at: date
     is_published: bool
+    is_public: bool
     tags: list[str]
     reading_minutes: int
 

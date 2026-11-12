@@ -4,7 +4,6 @@
 
 import json
 import re
-from datetime import date
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
@@ -12,17 +11,18 @@ from sqlalchemy.orm import Session
 from app.constants import MOMENT_COMMENTS_SHOWN
 from app.models import BlogPost, Comment, Message, Moment, MomentComment
 from app.slugs import MAX_SLUG_LENGTH, slugify_text
+from app.time_utils import site_today
 
 
 def visible_post_conditions() -> tuple:
     return (
         BlogPost.is_published.is_(True),
-        BlogPost.published_at <= date.today(),
+        BlogPost.published_at <= site_today(),
     )
 
 
 def is_post_public(post: BlogPost) -> bool:
-    return post.is_published and post.published_at <= date.today()
+    return post.is_published and post.published_at <= site_today()
 
 
 def unique_post_slug(

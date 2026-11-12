@@ -11,7 +11,6 @@ from xml.etree.ElementTree import Element, SubElement, register_namespace, tostr
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     Form,
     HTTPException,
@@ -58,10 +57,8 @@ from app.services.interactions import (
     create_message,
     create_moment_comment,
 )
-from app.services.notifications import (
-    send_pending as send_pending_notifications,
-)
 from app.templating import templates
+from app.time_utils import site_zone
 
 router = APIRouter()
 
@@ -89,7 +86,7 @@ def _post_json_ld(request: Request, post: BlogPost) -> str:
         "headline": post.title,
         "description": post.summary or post.title,
         "datePublished": post.published_at.isoformat(),
-        "dateModified": post.published_at.isoformat(),
+        "dateModified": post.updated_at.isoformat(),
         "inLanguage": "zh-CN",
         "author": {"@type": "Person", "name": AUTHOR_NAME},
         "publisher": {"@type": "Person", "name": AUTHOR_NAME},
@@ -358,7 +355,6 @@ def post_detail(
 def submit_comment(
     request: Request,
     db: DbSession,
-    background_tasks: BackgroundTasks,
     post_id: str,
     content: str = Form(..., max_length=2000),
     website: str = Form(""),
@@ -385,8 +381,6 @@ def submit_comment(
         )
 
     result = create_comment(db, post, author, actor_key, user_id, content)
-    if result.ok:
-        background_tasks.add_task(send_pending_notifications)
     if _is_htmx(request):
         return _comments_partial(request, db, post, result.message)
     return RedirectResponse(
@@ -480,7 +474,6 @@ def moments_page(
 def submit_moment_comment(
     request: Request,
     db: DbSession,
-    background_tasks: BackgroundTasks,
     moment_id: int,
     content: str = Form(..., max_length=1000),
     website: str = Form(""),
@@ -515,8 +508,6 @@ def submit_moment_comment(
         )
 
     result = create_moment_comment(db, moment, author, actor_key, user_id, content)
-    if result.ok:
-        background_tasks.add_task(send_pending_notifications)
     if _is_htmx(request):
         return _moment_comments_partial(request, db, moment, page, result.message)
     return RedirectResponse(
@@ -549,7 +540,6 @@ def guestbook_page(
 def submit_message(
     request: Request,
     db: DbSession,
-    background_tasks: BackgroundTasks,
     content: str = Form(..., max_length=1000),
     website: str = Form(""),
     _csrf: None = Depends(verify_csrf),
@@ -567,8 +557,6 @@ def submit_message(
         return RedirectResponse(f"{target}?message=submitted", status_code=303)
 
     result = create_message(db, user, content)
-    if result.ok:
-        background_tasks.add_task(send_pending_notifications)
     if _is_htmx(request):
         return _guestbook_partial(request, db, result.message)
     return RedirectResponse(f"{target}?message={result.code}", status_code=303)
@@ -758,7 +746,7 @@ def rss_feed(
         SubElement(item, "link").text = link
         SubElement(item, "guid").text = link
         SubElement(item, "pubDate").text = format_datetime(
-            datetime.combine(post.published_at, time.min).replace(tzinfo=UTC)
+            datetime.combine(post.published_at, time.min).replace(tzinfo=site_zone())
         )
         SubElement(item, "description").text = post.summary or ""
         if full:
@@ -792,7 +780,7 @@ def sitemap(request: Request, db: DbSession) -> Response:
         urls.append(
             (
                 str(request.url_for("post_detail", post_id=post.slug or post.id)),
-                post.published_at.isoformat(),
+                post.updated_at.date().isoformat(),
             )
         )
 

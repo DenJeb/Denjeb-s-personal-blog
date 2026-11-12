@@ -7,6 +7,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { getSearch } from "@/lib/api/fetchers";
 import { pageMetadata } from "@/lib/page-metadata";
 import { parsePage } from "@/lib/parse-page";
+import { firstParam } from "@/lib/search-params";
 
 export const metadata: Metadata = pageMetadata({
   title: "搜索",
@@ -17,11 +18,11 @@ export const metadata: Metadata = pageMetadata({
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string | string[]; page?: string | string[] }>;
 }) {
-  const { q = "", page: rawPage } = await searchParams;
-  const query = q.trim();
-  const page = parsePage(rawPage);
+  const { q: rawQ, page: rawPage } = await searchParams;
+  const query = (firstParam(rawQ) ?? "").trim();
+  const page = parsePage(firstParam(rawPage));
   const tooLong = query.length > 100;
   const results = query && !tooLong ? await getSearch(query, page) : null;
 
@@ -30,7 +31,7 @@ export default async function SearchPage({
       <PageHeader title="搜索" description="按标题、摘要和正文搜索文章。" />
 
       <div className="glass search-panel">
-        <SearchForm defaultValue={q} />
+        <SearchForm defaultValue={firstParam(rawQ) ?? ""} />
       </div>
 
       {!query ? (

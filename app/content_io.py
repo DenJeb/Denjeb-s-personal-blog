@@ -21,12 +21,13 @@ from app.models import (
     User,
 )
 from app.services.uploads import delete_orphan_uploads
+from app.time_utils import site_now_naive
 
 DEFAULT_PATH = PROJECT_DIR / "content" / "content-backup.json"
 
 
 def _parse_created_at(value: str | None) -> datetime:
-    return datetime.fromisoformat(value) if value else datetime.now(UTC)
+    return datetime.fromisoformat(value) if value else site_now_naive()
 
 
 def export_content(path: Path = DEFAULT_PATH) -> None:
@@ -49,6 +50,7 @@ def export_content(path: Path = DEFAULT_PATH) -> None:
                     "summary": post.summary,
                     "content": post.content,
                     "published_at": post.published_at.isoformat(),
+                    "updated_at": post.updated_at.isoformat(),
                     "tags": post.tags or [],
                     "is_published": post.is_published,
                 }
@@ -146,6 +148,7 @@ def import_content(
                         content=content,
                         content_html=render_markdown(content),
                         published_at=date.fromisoformat(item["published_at"]),
+                        updated_at=_parse_created_at(item.get("updated_at")),
                         tags=item.get("tags", []),
                         is_published=item.get("is_published", True),
                     )

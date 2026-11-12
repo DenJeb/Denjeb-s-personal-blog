@@ -1,0 +1,11 @@
+[Unit]
+Description=Sync blog backups to offsite storage
+After=network-online.target blog-backup.service
+Wants=network-online.target blog-backup.service
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+EnvironmentFile=/etc/default/blog-offsite-backup
+ExecStart=/bin/sh /srv/blog/deploy/blog-offsite-backup.sh

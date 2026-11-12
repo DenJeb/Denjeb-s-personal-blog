@@ -6,9 +6,9 @@ import logging
 import secrets
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -64,7 +64,37 @@ PRIVATE_PATH_PREFIXES = (
     "/register",
     "/forgot-password",
     "/reset-password",
+    "/api/v1/auth",
+    "/api/v1/admin",
 )
+
+LEGACY_PUBLIC_PREFIXES = (
+    "/posts",
+    "/moments",
+    "/guestbook",
+    "/tags",
+    "/archive",
+    "/search",
+    "/about",
+)
+
+
+def _is_legacy_public_path(path: str) -> bool:
+    if path == "/":
+        return True
+    return any(
+        path == prefix or path.startswith(f"{prefix}/")
+        for prefix in LEGACY_PUBLIC_PREFIXES
+    )
+
+
+@app.middleware("http")
+async def block_legacy_public_site(request: Request, call_next):
+    if not settings.legacy_public_site_enabled and _is_legacy_public_path(
+        request.url.path
+    ):
+        return Response(content="Not Found", status_code=404, media_type="text/plain")
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -106,8 +136,39 @@ def healthz():
     return {"status": "ok"}
 
 
+JSON_ERROR_PATHS = ("/admin/uploads/inline",)
+
+
 def _is_api_request(request: Request) -> bool:
-    return request.url.path.startswith("/api/")
+    return request.url.path.startswith("/api/") or request.url.path in JSON_ERROR_PATHS
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception(request: Request, exc: StarletteHTTPException):
+    if exc.status_code in {204, 304}:
+        return Response(status_code=exc.status_code, headers=exc.headers)
+    if 300 <= exc.status_code < 400:
+        headers = exc.headers or {}
+        location = headers.get("Location") or headers.get("location") or "/"
+        return RedirectResponse(location, status_code=exc.status_code)
+    if _is_api_request(request):
+        return JSONResponse(
+            {"detail": exc.detail},
+            status_code=exc.status_code,
+            headers=exc.headers,
+        )
+    detail = exc.detail if isinstance(exc.detail, str) else "请求失败"
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "app_name": settings.app_name,
+            "status_code": exc.status_code,
+            "detail": detail,
+        },
+        status_code=exc.status_code,
+        headers=exc.headers,
+    )
 
 
 @app.exception_handler(404)

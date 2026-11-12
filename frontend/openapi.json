@@ -782,6 +782,52 @@
         }
       }
     },
+    "/api/v1/admin/logout": {
+      "post": {
+        "summary": "Admin Api Logout",
+        "operationId": "admin_api_logout_api_v1_admin_logout_post",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/me": {
       "get": {
         "summary": "Admin Api Me",
@@ -3879,6 +3925,10 @@
             "type": "boolean",
             "title": "Is Published"
           },
+          "is_public": {
+            "type": "boolean",
+            "title": "Is Public"
+          },
           "tags": {
             "items": {
               "type": "string"
@@ -3914,6 +3964,7 @@
           "summary",
           "published_at",
           "is_published",
+          "is_public",
           "tags",
           "reading_minutes",
           "content"
@@ -3974,6 +4025,10 @@
             "type": "boolean",
             "title": "Is Published"
           },
+          "is_public": {
+            "type": "boolean",
+            "title": "Is Public"
+          },
           "tags": {
             "items": {
               "type": "string"
@@ -3994,6 +4049,7 @@
           "summary",
           "published_at",
           "is_published",
+          "is_public",
           "tags",
           "reading_minutes"
         ],
@@ -5264,6 +5320,11 @@
             "type": "string",
             "title": "Content Html"
           },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
           "toc": {
             "items": {
               "$ref": "#/components/schemas/TocItem"
@@ -5311,6 +5372,7 @@
           "reading_minutes",
           "content",
           "content_html",
+          "updated_at",
           "toc",
           "related_posts"
         ],

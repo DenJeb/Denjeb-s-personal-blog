@@ -43,6 +43,28 @@ test("logout failure shows a retry state", async ({ page, context }) => {
   ).toBeVisible();
 });
 
+test("guest visiting account is sent to login", async ({ page }) => {
+  await page.goto("/account");
+  await page.waitForURL(/\/login\?next=/);
+});
+
+test("signed-in user sees the account page", async ({ page, context }) => {
+  await context.addCookies([
+    {
+      name: "blog_session",
+      value: "test-session",
+      domain: "127.0.0.1",
+      path: "/",
+    },
+  ]);
+
+  await page.goto("/account");
+  await expect(page.getByRole("heading", { name: "我的账号" })).toBeVisible();
+  await expect(
+    page.locator(".auth-card").getByText("DenJeb", { exact: true }),
+  ).toBeVisible();
+});
+
 test("guest is invited to login before commenting", async ({ page }) => {
   await page.goto("/posts/hello-world#comments");
   await expect(page.getByRole("link", { name: "登录后评论" })).toBeVisible();

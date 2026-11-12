@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const useEdge = !process.env.CI;
+
 export default defineConfig({
   testDir: "./e2e",
   testIgnore: ["**/api-error.spec.ts"],
@@ -10,8 +12,10 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "msedge",
-      use: { ...devices["Desktop Chrome"], channel: "msedge" },
+      name: useEdge ? "msedge" : "chromium",
+      use: useEdge
+        ? { ...devices["Desktop Chrome"], channel: "msedge" }
+        : { ...devices["Desktop Chrome"] },
     },
   ],
   webServer: [

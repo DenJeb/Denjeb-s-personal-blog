@@ -9,7 +9,7 @@
 - 分页：`page` 从 1 开始，`per_page` 默认按资源类型，最大 50。
 - 错误：FastAPI 默认格式 `{"detail": "..."}`。
 - 公开文章接口只返回已发布且日期已到的文章；后台文章接口例外，会返回草稿和未来文章。
-- 时间：文章日期为 `YYYY-MM-DD`，评论/动态/留言为 ISO 8601。
+- 时间：文章日期为 `YYYY-MM-DD`；评论/动态/留言为 ISO 8601，值按站点时区 `SITE_TIMEZONE`（默认 `Asia/Shanghai`）保存，不带时区偏移。
 - `/auth/me` 只读取前台用户 session，不返回管理员身份；后台读取接口在 `/api/v1/admin/*`，需要管理员 session（不是前台用户 session），未登录返回 401。
 - 登录和写请求由浏览器同源直接调用 FastAPI；先 `GET /auth/csrf`，再把 token 放进 `X-CSRF-Token` 头。`Set-Cookie` 由 FastAPI 返回浏览器，不经过 Next.js。
 - 未登录写请求返回 401；空内容或 CSRF 失败返回 400；15 秒内重复提交返回 429。文章/动态评论默认未审核，留言直接展示。
@@ -35,9 +35,10 @@
 | POST | `/api/v1/posts/{slug-or-id}/comments` | 发表评论（需登录 + CSRF；审核后展示） |
 | POST | `/api/v1/moments/{id}/comments` | 发表动态评论（需登录 + CSRF；审核后展示） |
 | POST | `/api/v1/guestbook` | 发表留言（需登录 + CSRF） |
+| POST | `/api/v1/admin/logout` | 退出管理员后台（需 CSRF） |
 | GET | `/api/v1/admin/me` | 当前管理员；未登录管理员返回 401 |
 | GET | `/api/v1/admin/dashboard` | 后台统计：文章、动态、留言、评论、用户和待审核数 |
-| GET | `/api/v1/admin/posts` | 后台文章列表（含草稿和未来文章），`page` 从 1 开始 |
+| GET | `/api/v1/admin/posts` | 后台文章列表（含草稿和未来文章），返回 `is_public` 标识是否已对外可见，`page` 从 1 开始 |
 | GET | `/api/v1/admin/posts/{id}` | 后台文章详情，包含原始 Markdown 和 HTML |
 
 ## 文章列表
@@ -81,6 +82,7 @@ GET /api/v1/posts/bo-ke-kai-zhang-wei-shi-yao-yong-fastapi-jinja2
 
 - `content`：原始 Markdown。
 - `content_html`：服务端渲染后的 HTML，已禁用原始 HTML，可直接用于 `dangerouslySetInnerHTML`。
+- `updated_at`：最后更新时间，用于 JSON-LD `dateModified`。
 - `toc`：`[{level, text, id}]`，标题锚点与 `content_html` 中的 `id` 对应。
 - `previous_post` / `next_post`：`{title, slug, url, published_at}` 或 `null`。
 - `related_posts`：文章摘要列表（最多 3 篇）。

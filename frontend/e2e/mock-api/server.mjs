@@ -62,6 +62,11 @@ const server = createServer(async (request, response) => {
   const csrfOk = (request.headers["x-csrf-token"] ?? "") === CSRF_TOKEN;
   response.setHeader("content-type", "application/json; charset=utf-8");
 
+  if (url.pathname === "/healthz") {
+    response.end(JSON.stringify({ status: "ok" }));
+    return;
+  }
+
   if (url.pathname === "/api/v1/site") {
     response.end(JSON.stringify(site));
     return;
@@ -74,6 +79,22 @@ const server = createServer(async (request, response) => {
 
   if (url.pathname === "/api/v1/auth/me") {
     response.end(JSON.stringify(loggedIn ? me : { user: null }));
+    return;
+  }
+
+  if (method === "POST" && url.pathname === "/api/v1/admin/logout") {
+    if (!adminLoggedIn) {
+      response.statusCode = 401;
+      response.end(JSON.stringify({ detail: "请先登录后台" }));
+      return;
+    }
+    if (!csrfOk) {
+      response.statusCode = 400;
+      response.end(JSON.stringify({ detail: "CSRF 校验失败" }));
+      return;
+    }
+    response.setHeader("set-cookie", CLEAR_SESSION_COOKIE);
+    response.end(JSON.stringify({ ok: true }));
     return;
   }
 

@@ -26,14 +26,6 @@ const rewrites = proxyPaths.flatMap((path) => [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
-  },
   async rewrites() {
     // Keep these as afterFiles so Next.js admin pages take precedence over
     // the legacy Jinja admin pages served by FastAPI.

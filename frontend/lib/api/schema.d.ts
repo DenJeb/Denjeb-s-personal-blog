@@ -261,6 +261,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Api Logout */
+        post: operations["admin_api_logout_api_v1_admin_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/me": {
         parameters: {
             query?: never;
@@ -1416,6 +1433,8 @@ export interface components {
             published_at: string;
             /** Is Published */
             is_published: boolean;
+            /** Is Public */
+            is_public: boolean;
             /** Tags */
             tags: string[];
             /** Reading Minutes */
@@ -1448,6 +1467,8 @@ export interface components {
             published_at: string;
             /** Is Published */
             is_published: boolean;
+            /** Is Public */
+            is_public: boolean;
             /** Tags */
             tags: string[];
             /** Reading Minutes */
@@ -2005,6 +2026,11 @@ export interface components {
             content: string;
             /** Content Html */
             content_html: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
             /** Toc */
             toc: components["schemas"]["TocItem"][];
             previous_post?: components["schemas"]["PostLink"] | null;
@@ -2602,6 +2628,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WriteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_api_logout_api_v1_admin_logout_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-CSRF-Token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoutResponse"];
                 };
             };
             /** @description Validation Error */

@@ -27,9 +27,8 @@ def _outbox() -> list[NotificationOutbox]:
         ).all()
 
 
-def test_comment_notification_enqueued(user_client, monkeypatch):
+def test_comment_notification_enqueued(user_client):
     _cleanup_comments()
-    monkeypatch.setattr("app.routers.public.send_pending_notifications", lambda: None)
     try:
         page = user_client.get("/posts/1")
         token = csrf_token(page.text)
@@ -50,8 +49,7 @@ def test_comment_notification_enqueued(user_client, monkeypatch):
         _cleanup_comments()
 
 
-def test_guestbook_notification_enqueued(user_client, monkeypatch):
-    monkeypatch.setattr("app.routers.public.send_pending_notifications", lambda: None)
+def test_guestbook_notification_enqueued(user_client):
     token = csrf_token(user_client.get("/guestbook").text)
     response = user_client.post(
         "/guestbook",
@@ -66,8 +64,7 @@ def test_guestbook_notification_enqueued(user_client, monkeypatch):
     assert BODY in rows[0].body
 
 
-def test_moment_comment_notification_enqueued(user_client, monkeypatch):
-    monkeypatch.setattr("app.routers.public.send_pending_notifications", lambda: None)
+def test_moment_comment_notification_enqueued(user_client):
     with SessionLocal() as db:
         moment = Moment(content="__pytest_notification_moment__")
         db.add(moment)

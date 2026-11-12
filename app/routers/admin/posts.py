@@ -2,8 +2,6 @@
 ========== 后台文章管理 ==========
 """
 
-from datetime import date
-
 from fastapi import (
     APIRouter,
     Depends,
@@ -37,6 +35,7 @@ from app.services.uploads import (
     upload_urls_in_text,
 )
 from app.templating import templates
+from app.time_utils import site_today
 
 router = APIRouter()
 
@@ -67,7 +66,7 @@ def admin_posts(
             "total_pages": total_pages,
             "has_prev": page > 1,
             "has_next": page < total_pages,
-            "today": date.today(),
+            "today": site_today(),
             "saved": request.query_params.get("saved") == "1",
             "deleted": request.query_params.get("deleted") == "1",
         },
@@ -200,7 +199,7 @@ def post_create_page(request: Request, _admin: CurrentAdmin):
                 "slug": "",
                 "summary": "",
                 "content": "",
-                "published_at": date.today().isoformat(),
+                "published_at": site_today().isoformat(),
                 "tags": "",
                 "is_published": True,
             },

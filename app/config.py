@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     secret_key: str
     admin_email: str
     site_url: str = "http://localhost:8000"
+    site_timezone: str = "Asia/Shanghai"
+    legacy_public_site_enabled: bool = True
     email_enabled: bool = True
     admin_login_code_enabled: bool = True
     database_url: str = (

@@ -1,7 +1,6 @@
-from datetime import date
-
 from app.db import SessionLocal
 from app.models import BlogPost
+from app.time_utils import site_today
 from tests.conftest import ADMIN_EMAIL, ADMIN_USERNAME
 
 DRAFT_TITLE = "__pytest_admin_api_draft__"
@@ -15,13 +14,24 @@ def _create_draft() -> int:
             slug=DRAFT_SLUG,
             summary="draft summary",
             content="# Draft\n\nbody",
-            published_at=date.today(),
+            published_at=site_today(),
             is_published=False,
         )
         db.add(post)
         db.commit()
         db.refresh(post)
         return post.id
+
+
+def test_admin_logout(admin_client):
+    csrf = admin_client.get("/api/v1/auth/csrf").json()["csrf_token"]
+    response = admin_client.post(
+        "/api/v1/admin/logout",
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert response.status_code == 200
+    assert admin_client.get("/api/v1/admin/me").status_code == 401
 
 
 def _delete_draft(post_id: int) -> None:

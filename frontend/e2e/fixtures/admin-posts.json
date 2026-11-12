@@ -7,6 +7,7 @@
       "summary": "这是第一篇文章的摘要。",
       "published_at": "2026-01-01",
       "is_published": true,
+      "is_public": true,
       "tags": ["FastAPI", "Next.js"],
       "reading_minutes": 3
     },
@@ -17,14 +18,26 @@
       "summary": "这是一篇尚未发布的草稿。",
       "published_at": "2026-02-01",
       "is_published": false,
+      "is_public": false,
       "tags": ["草稿"],
       "reading_minutes": 2
+    },
+    {
+      "id": 3,
+      "title": "未来文章",
+      "slug": "future-post",
+      "summary": "这是一篇未来才会发布的文章。",
+      "published_at": "2027-01-01",
+      "is_published": true,
+      "is_public": false,
+      "tags": ["计划"],
+      "reading_minutes": 1
     }
   ],
   "meta": {
     "page": 1,
     "per_page": 20,
-    "total": 2,
+    "total": 3,
     "total_pages": 1,
     "has_prev": false,
     "has_next": false

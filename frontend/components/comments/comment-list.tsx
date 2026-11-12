@@ -1,4 +1,5 @@
 import type { components } from "@/lib/api/schema";
+import { formatDateTime } from "@/lib/date";
 
 type CommentItem = components["schemas"]["CommentItem"];
 
@@ -14,7 +15,7 @@ export function CommentList({ comments }: { comments: CommentItem[] }) {
           <div className="comment-author">{comment.author_name}</div>
           <div className="comment-body">{comment.content}</div>
           <time className="comment-time" dateTime={comment.created_at}>
-            {comment.created_at}
+            {formatDateTime(comment.created_at)}
           </time>
         </li>
       ))}

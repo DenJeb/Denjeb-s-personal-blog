@@ -28,12 +28,13 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // FastAPI/Jinja2 页面（旧后台、验证码登录、注册/找回/账户）和 API/静态资源
-  // 由 Nginx 直接路由；开发环境也排除它们，避免 Next 的 CSP 叠加到 FastAPI 页面。
-  // 已迁移到 Next.js 的后台页面单独加入，使用 nonce CSP。
+  // FastAPI/Jinja2 页面（旧后台、验证码登录、注册/找回、/account/delete）和
+  // API/静态资源由 Nginx 直接路由；开发环境也排除它们，避免 Next 的 CSP
+  // 叠加到 FastAPI 页面。已迁移到 Next.js 的页面单独加入，使用 nonce CSP。
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|api/|static/|admin|login/code|register|forgot-password|reset-password|account|rss\\.xml|sitemap\\.xml|robots\\.txt).*)",
     "/admin",
     "/admin/posts",
+    "/account",
   ],
 };

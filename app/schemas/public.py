@@ -43,6 +43,7 @@ class TocItem(BaseModel):
 class PostDetail(PostSummary):
     content: str
     content_html: str
+    updated_at: datetime
     toc: list[TocItem]
     previous_post: PostLink | None = None
     next_post: PostLink | None = None

@@ -2,8 +2,8 @@
 Description=Retry blog notification outbox periodically
 
 [Timer]
-OnBootSec=2min
-OnUnitActiveSec=10min
+OnBootSec=1min
+OnUnitActiveSec=2min
 Persistent=true
 
 [Install]

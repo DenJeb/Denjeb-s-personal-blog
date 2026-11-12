@@ -1,5 +1,6 @@
 import { WriteForm } from "@/components/forms/write-form";
 import type { components } from "@/lib/api/schema";
+import { formatDateTime } from "@/lib/date";
 
 type MomentItem = components["schemas"]["MomentItem"];
 
@@ -13,7 +14,7 @@ export function MomentCard({
   return (
     <article className="glass glass-hover moment-card">
       <time className="moment-date" dateTime={moment.created_at}>
-        {moment.created_at}
+        {formatDateTime(moment.created_at)}
       </time>
 
       <p className="moment-text">{moment.content}</p>
@@ -30,7 +31,7 @@ export function MomentCard({
                 className="moment-comment-time"
                 dateTime={comment.created_at}
               >
-                {comment.created_at}
+                {formatDateTime(comment.created_at)}
               </time>
             </div>
           ))}
