@@ -165,12 +165,12 @@ class AdminUploadDeleteRequest(BaseModel):
 
 
 class AdminTotpEnableRequest(BaseModel):
-    code: str = Field(min_length=6, max_length=6)
+    code: str = Field(max_length=20)
 
 
 class AdminTotpDisableRequest(BaseModel):
-    password: str = Field(min_length=1, max_length=200)
-    code: str = Field(min_length=6, max_length=6)
+    password: str = Field(max_length=200)
+    code: str = Field(max_length=20)
 
 
 class AdminToggleResponse(BaseModel):

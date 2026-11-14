@@ -12,6 +12,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+function excerpt(content: string): string {
+  return content.length > 80 ? `${content.slice(0, 80)}…` : content;
+}
+
 export default async function AdminMessagesPage({
   searchParams,
 }: {
@@ -49,7 +53,12 @@ export default async function AdminMessagesPage({
                     {formatDateTime(message.created_at)}
                   </time>
                 </div>
-                <p className="admin-row-content">{message.content}</p>
+                <p
+                  className="admin-row-content"
+                  title={message.content}
+                >
+                  {excerpt(message.content)}
+                </p>
               </div>
 
               <div className="admin-row-actions">

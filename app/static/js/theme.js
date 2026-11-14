@@ -23,6 +23,8 @@
   button.addEventListener("click", () => {
     const next = isDark() ? "light" : "dark";
     root.setAttribute("data-theme", next);
+    document.cookie = `theme-v2=${next}; path=/; max-age=31536000; samesite=lax`;
+    document.cookie = "theme=; path=/; max-age=0; samesite=lax";
     try {
       localStorage.setItem("theme", next);
     } catch (error) {

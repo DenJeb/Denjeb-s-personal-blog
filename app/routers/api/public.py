@@ -56,6 +56,7 @@ from app.services.content import (
     tag_sort_key,
     visible_tag_counts,
 )
+from app.time_utils import site_today
 
 router = APIRouter()
 
@@ -120,6 +121,7 @@ def site_info():
         app_name=settings.app_name,
         author=settings.author_name,
         site_url=_site_url(),
+        today=site_today(),
     )
 
 

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 
 from app.auth import CurrentAdminApi
+from app.constants import PENDING_TOTP_SECRET
 from app.csrf import verify_csrf_header
 from app.deps import DbSession
 from app.models import BlogPost, Comment, Message, Moment, MomentComment, User
@@ -38,7 +39,7 @@ def admin_logout(
         "pending_admin_version",
         "pending_admin_at",
         "pending_admin_login_code",
-        "pending_totp_secret",
+        PENDING_TOTP_SECRET,
     ):
         request.session.pop(key, None)
     return LogoutResponse(ok=True)

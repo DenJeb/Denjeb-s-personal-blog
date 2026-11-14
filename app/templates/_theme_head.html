@@ -1,14 +1,23 @@
 <script nonce="{{ request.state.csp_nonce }}">
   (() => {
     try {
-      const saved = localStorage.getItem("theme");
+      const themeCookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("theme-v2="));
+      const cookieTheme = themeCookie
+        ? themeCookie.slice("theme-v2=".length)
+        : null;
+      const saved =
+        cookieTheme === "dark" || cookieTheme === "light"
+          ? cookieTheme
+          : localStorage.getItem("theme");
       if (saved === "dark" || saved === "light") {
         document.documentElement.setAttribute("data-theme", saved);
       } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
         document.documentElement.setAttribute("data-theme", "dark");
       }
     } catch (error) {
-      // localStorage 不可用时保持默认主题
+      // cookie/localStorage 不可用时保持默认主题
     }
   })();
 </script>

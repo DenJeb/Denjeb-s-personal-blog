@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 
 from app.auth import CurrentAdminApi
 from app.config import settings
+from app.constants import PENDING_TOTP_SECRET
 from app.csrf import verify_csrf_header
 from app.deps import DbSession
 from app.models import User
@@ -31,7 +32,6 @@ from app.services.security import (
 )
 
 router = APIRouter(prefix="/admin")
-PENDING_TOTP_SECRET = "pending_totp_secret"
 
 
 def _security_state(request: Request, admin) -> AdminSecurity:

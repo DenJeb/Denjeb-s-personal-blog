@@ -10,6 +10,7 @@ from sqlalchemy import delete
 from app.db import SessionLocal
 from app.markdown import render_markdown_with_toc
 from app.models import BlogPost, Comment, Message, Moment, MomentComment
+from app.time_utils import site_today
 
 PREFIX = "__pytest_api_"
 
@@ -52,6 +53,7 @@ def test_site_info(client):
     assert payload["app_name"]
     assert payload["author"]
     assert payload["site_url"].startswith("http")
+    assert payload["today"] == site_today().isoformat()
 
 
 def test_posts_list_and_pagination(client):

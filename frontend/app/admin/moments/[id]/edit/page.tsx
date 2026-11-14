@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { AdminDeleteButton } from "@/components/admin/admin-delete-button";
 import { MomentForm } from "@/components/admin/moment-form";
 import { getAdminMoment } from "@/lib/api/admin";
+import { parsePage } from "@/lib/parse-page";
+import { firstParam } from "@/lib/search-params";
 
 export const metadata: Metadata = {
   title: "编辑动态 · 后台",
@@ -12,10 +14,13 @@ export const metadata: Metadata = {
 
 export default async function EditMomentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string | string[] }>;
 }) {
   const { id } = await params;
+  const { page: rawPage } = await searchParams;
   const momentId = Number(id);
   if (!Number.isInteger(momentId) || momentId <= 0) {
     notFound();
@@ -26,6 +31,10 @@ export default async function EditMomentPage({
     notFound();
   }
 
+  const page = parsePage(firstParam(rawPage));
+  const listHref =
+    page > 1 ? `/admin/moments?page=${page}` : "/admin/moments";
+
   return (
     <>
       <header className="admin-page-head">
@@ -35,14 +44,18 @@ export default async function EditMomentPage({
         </div>
       </header>
 
-      <MomentForm momentId={moment.id} initialContent={moment.content} />
+      <MomentForm
+        momentId={moment.id}
+        initialContent={moment.content}
+        listHref={listHref}
+      />
 
       <p>
         <AdminDeleteButton
           endpoint={`/api/v1/admin/moments/${moment.id}`}
           label="删除这条动态"
           confirmMessage="确定删除这条动态吗？"
-          redirectTo="/admin/moments"
+          redirectTo={listHref}
         />
       </p>
     </>

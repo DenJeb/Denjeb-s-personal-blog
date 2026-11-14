@@ -2696,6 +2696,11 @@ export interface components {
             author: string;
             /** Site Url */
             site_url: string;
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
         };
         /** TagItem */
         TagItem: {

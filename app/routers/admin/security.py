@@ -8,6 +8,7 @@ from fastapi.responses import RedirectResponse
 
 from app.auth import CurrentAdmin
 from app.config import settings
+from app.constants import PENDING_TOTP_SECRET
 from app.csrf import verify_csrf
 from app.deps import DbSession
 from app.services.security import (
@@ -19,8 +20,6 @@ from app.services.security import (
 from app.templating import templates
 
 router = APIRouter()
-
-PENDING_TOTP_SECRET = "pending_totp_secret"
 
 
 def _security_context(request: Request, admin, error: str | None = None) -> dict:

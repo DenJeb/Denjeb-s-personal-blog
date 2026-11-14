@@ -54,7 +54,12 @@ export default async function AdminMomentsPage({
           {data.items.map((moment) => (
             <article key={moment.id} className="glass admin-row">
               <div className="admin-row-main">
-                <p className="admin-row-content">{excerpt(moment.content)}</p>
+                <p
+                  className="admin-row-content"
+                  title={moment.content}
+                >
+                  {excerpt(moment.content)}
+                </p>
                 <div className="admin-row-meta">
                   <time dateTime={moment.created_at}>
                     {formatDateTime(moment.created_at)}
@@ -72,7 +77,11 @@ export default async function AdminMomentsPage({
                   预览
                 </a>
                 <Link
-                  href={`/admin/moments/${moment.id}/edit`}
+                  href={
+                    data.meta.page > 1
+                      ? `/admin/moments/${moment.id}/edit?page=${data.meta.page}`
+                      : `/admin/moments/${moment.id}/edit`
+                  }
                   className="btn btn-ghost"
                 >
                   编辑

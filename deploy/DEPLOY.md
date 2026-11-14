@@ -172,6 +172,18 @@ sudo systemctl reload nginx
 
 切换步骤和回滚方式见 §13；在 staging 验收通过前，不要 reload 生产 Nginx。
 
+### 安全响应头来源
+
+同一组安全头目前由三处设置，修改时需同步检查：
+
+| 头 | FastAPI | Next.js | Nginx |
+|---|---|---|---|
+| CSP | `app/main.py` 的 `add_security_headers` | `frontend/proxy.ts` | 应用返回，Nginx 不覆盖 |
+| `X-Content-Type-Options`、`X-Frame-Options`、`Referrer-Policy`、`Permissions-Policy` | `app/main.py` | `frontend/next.config.ts` | `deploy/nginx.conf` |
+| HSTS | `app/main.py`（仅 HTTPS） | — | `deploy/nginx.conf` |
+
+修改任何一条安全头后，至少验证 `/`、`/admin`、`/login`、`/api/v1/site` 四个入口。
+
 ## 7. 防火墙
 
 ```bash
@@ -439,7 +451,7 @@ curl -I https://yourdomain.com/rss.xml
 - 前台评论/留言需要登录并带 CSRF，成功后进入审核
 - `/admin/login` 邮箱 + 密码 + 验证码能登录；`/admin` 显示 Next 仪表盘
 - `/admin/posts` 显示文章列表，编辑链接能打开 Next.js 编辑器；评论审核、动态、留言、用户、图片和安全设置页面都能正常读写
-- 退出后台仍可在旧后台完成
+- 退出后台使用 Next.js 后台侧栏的“退出后台”按钮（`POST /api/v1/admin/logout`）
 - 文章详情、搜索、标签、归档、动态、留言、RSS/sitemap/robots 都正常
 
 ### 13.4 回滚

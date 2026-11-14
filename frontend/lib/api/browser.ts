@@ -58,10 +58,21 @@ async function csrfFetch(
   });
 }
 
+function detailMessage(detail: unknown): string {
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const first = detail[0] as { msg?: unknown } | undefined;
+    if (first && typeof first.msg === "string") {
+      return first.msg;
+    }
+  }
+  return "请求失败，请稍后重试。";
+}
+
 function errorFrom(response: Response, data: Record<string, unknown>): ApiError {
-  const detail =
-    typeof data.detail === "string" ? data.detail : "请求失败，请稍后重试。";
-  return new ApiError(response.status, detail);
+  return new ApiError(response.status, detailMessage(data.detail));
 }
 
 export async function sendJson<T = Record<string, unknown>>(

@@ -124,3 +124,4 @@ class SiteInfo(BaseModel):
     app_name: str
     author: str
     site_url: str
+    today: date

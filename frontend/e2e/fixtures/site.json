@@ -1,5 +1,6 @@
 {
   "app_name": "Denjeb 的个人博客",
   "author": "DenJeb",
-  "site_url": "http://localhost:3000"
+  "site_url": "http://localhost:3000",
+  "today": "2026-11-13"
 }

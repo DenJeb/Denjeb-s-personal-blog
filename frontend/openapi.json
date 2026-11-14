@@ -5804,13 +5804,11 @@
           "password": {
             "type": "string",
             "maxLength": 200,
-            "minLength": 1,
             "title": "Password"
           },
           "code": {
             "type": "string",
-            "maxLength": 6,
-            "minLength": 6,
+            "maxLength": 20,
             "title": "Code"
           }
         },
@@ -5825,8 +5823,7 @@
         "properties": {
           "code": {
             "type": "string",
-            "maxLength": 6,
-            "minLength": 6,
+            "maxLength": 20,
             "title": "Code"
           }
         },
@@ -7416,13 +7413,19 @@
           "site_url": {
             "type": "string",
             "title": "Site Url"
+          },
+          "today": {
+            "type": "string",
+            "format": "date",
+            "title": "Today"
           }
         },
         "type": "object",
         "required": [
           "app_name",
           "author",
-          "site_url"
+          "site_url",
+          "today"
         ],
         "title": "SiteInfo"
       },

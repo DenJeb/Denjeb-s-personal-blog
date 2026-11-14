@@ -43,7 +43,7 @@
 - [ ] 安装 `deploy/nextjs.service`（只监听 `127.0.0.1:3000`）；按 `deploy/DEPLOY.md` §12 用 `deploy/nginx.staging.conf` 验收 `/api/v1/site`、`/account`、`/healthz`、`/admin`、`/admin/posts`、`/admin/comments`、`/admin/moments`、`/admin/users`、`/admin/uploads`、`/admin/security`、`/admin/login`、`/login`、`/rss.xml`
 - [ ] staging 的 FastAPI `.env` 中 `TRUSTED_HOSTS` 加 `127.0.0.1` 和 staging 域名；如果 staging 只用 HTTP，临时 `SESSION_HTTPS_ONLY=false`，正式切换恢复 `true`
 - [ ] 生产切换：备份现有 `/etc/nginx/sites-available/blog`，替换为 `deploy/nginx.conf`，`nginx -t` 通过后再 `reload`；按 `DEPLOY.md` §13 验证
-- [ ] HTTPS 下用真实浏览器验证 `__Host-blog_session`、`/login`、`/admin`、`/admin/posts` 和旧文章编辑页
+- [ ] HTTPS 下用真实浏览器验证 `__Host-blog_session`、`/login`、`/admin`、`/admin/posts` 和 Next.js 文章编辑器页
 - [ ] 生产切换后再次测试注册/重置验证码、后台登录验证码、评论/留言写入和备份生成
 
 ## 等 HTTPS 上线后再打开

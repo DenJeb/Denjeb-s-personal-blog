@@ -651,6 +651,22 @@ def test_admin_security_totp_flow(admin_client):
     assert admin_client.get("/api/v1/admin/me").status_code == 200
 
 
+def test_admin_totp_malformed_fields_return_400(admin_client):
+    response = admin_client.post(
+        "/api/v1/admin/security/totp/enable",
+        json={"code": "x"},
+        headers={"X-CSRF-Token": _csrf(admin_client)},
+    )
+    assert response.status_code == 400
+
+    response = admin_client.post(
+        "/api/v1/admin/security/totp/disable",
+        json={"password": "", "code": "x"},
+        headers={"X-CSRF-Token": _csrf(admin_client)},
+    )
+    assert response.status_code == 400
+
+
 def test_admin_totp_enable_rejects_bad_code(admin_client):
     response = admin_client.post(
         "/api/v1/admin/security/totp/start",

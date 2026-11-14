@@ -9,9 +9,11 @@ import { ApiError, sendJson } from "@/lib/api/browser";
 export function MomentForm({
   momentId,
   initialContent,
+  listHref = "/admin/moments",
 }: {
   momentId?: number;
   initialContent: string;
+  listHref?: string;
 }) {
   const router = useRouter();
   const [content, setContent] = useState(initialContent);
@@ -28,7 +30,7 @@ export function MomentForm({
         ? `/api/v1/admin/moments/${momentId}`
         : "/api/v1/admin/moments";
       await sendJson(momentId ? "PUT" : "POST", endpoint, { content });
-      router.push("/admin/moments");
+      router.push(listHref);
       router.refresh();
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 401) {
@@ -68,7 +70,7 @@ export function MomentForm({
         <button type="submit" className="btn btn-primary" disabled={pending}>
           {pending ? "保存中…" : "保存"}
         </button>
-        <Link href="/admin/moments" className="btn btn-ghost">
+        <Link href={listHref} className="btn btn-ghost">
           取消
         </Link>
       </div>

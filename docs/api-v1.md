@@ -18,7 +18,7 @@
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET | `/api/v1/site` | 站点名称、作者、对外地址 |
+| GET | `/api/v1/site` | 站点名称、作者、对外地址和站点当天日期（`today`） |
 | GET | `/api/v1/auth/me` | 当前前台登录态；返回 `{"user": {"name": "..."} \| null}` |
 | GET | `/api/v1/auth/csrf` | 获取与当前 session 绑定的 CSRF token |
 | POST | `/api/v1/auth/login` | 邮箱 + 密码登录；成功设置 Session Cookie |

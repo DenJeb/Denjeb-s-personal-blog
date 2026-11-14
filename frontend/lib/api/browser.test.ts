@@ -84,6 +84,25 @@ describe("browser API helpers", () => {
     });
   });
 
+  it("uses the first validation message from an array detail", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ csrf_token: "token-1" }))
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { detail: [{ msg: "字段不能为空", type: "value_error" }] },
+          422,
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const error = await sendJson("POST", "/api/v1/test", {}).catch(
+      (caught) => caught,
+    );
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.message).toBe("字段不能为空");
+  });
+
   it("sends multipart form data without a JSON content type", async () => {
     const fetchMock = vi
       .fn()

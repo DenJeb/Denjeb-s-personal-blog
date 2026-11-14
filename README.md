@@ -35,7 +35,9 @@
 
 ## 技术
 
-前台 Next.js 16 + React 19 + TypeScript；后端 FastAPI + SQLAlchemy + MySQL；自托管在 Nginx + systemd 上。
+- 前台与后台日常页面 Next.js 16 + React 19 + TypeScript
+- 后端 FastAPI + SQLAlchemy + MySQL
+- 自托管在 Nginx + systemd 上
 
 ## 关于
 

@@ -1,19 +1,16 @@
 import type { Metadata } from "next";
 
 import { PostEditor } from "@/components/admin/post-editor";
+import { getSiteInfo } from "@/lib/api/fetchers";
 
 export const metadata: Metadata = {
   title: "新建文章 · 后台",
   robots: { index: false, follow: false },
 };
 
-function siteToday(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Shanghai",
-  }).format(new Date());
-}
+export default async function NewPostPage() {
+  const site = await getSiteInfo();
 
-export default function NewPostPage() {
   return (
     <>
       <header className="admin-page-head">
@@ -23,7 +20,7 @@ export default function NewPostPage() {
         </div>
       </header>
 
-      <PostEditor today={siteToday()} />
+      <PostEditor today={site.today} />
     </>
   );
 }

@@ -12,6 +12,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+function excerpt(content: string): string {
+  return content.length > 80 ? `${content.slice(0, 80)}…` : content;
+}
+
 export default async function AdminCommentsPage({
   searchParams,
 }: {
@@ -63,7 +67,12 @@ export default async function AdminCommentsPage({
                     {formatDateTime(comment.created_at)}
                   </time>
                 </div>
-                <p className="admin-row-content">{comment.content}</p>
+                <p
+                  className="admin-row-content"
+                  title={comment.content}
+                >
+                  {excerpt(comment.content)}
+                </p>
               </div>
 
               <ModerationActions
