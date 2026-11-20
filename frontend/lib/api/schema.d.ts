@@ -893,7 +893,8 @@ export interface paths {
         post?: never;
         delete?: never;
         options?: never;
-        head?: never;
+        /** Rss Feed Head */
+        head: operations["rss_feed_head_rss_xml_head"];
         patch?: never;
         trace?: never;
     };
@@ -910,7 +911,8 @@ export interface paths {
         post?: never;
         delete?: never;
         options?: never;
-        head?: never;
+        /** Sitemap Head */
+        head: operations["sitemap_head_sitemap_xml_head"];
         patch?: never;
         trace?: never;
     };
@@ -927,7 +929,8 @@ export interface paths {
         post?: never;
         delete?: never;
         options?: never;
-        head?: never;
+        /** Robots Txt Head */
+        head: operations["robots_txt_head_robots_txt_head"];
         patch?: never;
         trace?: never;
     };
@@ -4634,6 +4637,26 @@ export interface operations {
             };
         };
     };
+    rss_feed_head_rss_xml_head: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     sitemap_sitemap_xml_get: {
         parameters: {
             query?: never;
@@ -4654,7 +4677,47 @@ export interface operations {
             };
         };
     };
+    sitemap_head_sitemap_xml_head: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     robots_txt_robots_txt_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    robots_txt_head_robots_txt_head: {
         parameters: {
             query?: never;
             header?: never;

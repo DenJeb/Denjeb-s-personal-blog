@@ -721,3 +721,17 @@ def test_register_rejects_overlong_password(client):
         follow_redirects=False,
     )
     assert response.status_code == 422
+
+
+def test_forgot_password_unregistered(client):
+    token = csrf_token(client.get("/forgot-password").text)
+    response = client.post(
+        "/forgot-password",
+        data={
+            "csrf_token": token,
+            "email": "__pytest_missing_forgot@example.com",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 400
+    assert "尚未注册" in response.text

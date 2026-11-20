@@ -8,6 +8,7 @@ test("sets strict CSP and security headers", async ({ page }) => {
   expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
   expect(response!.headers()["x-content-type-options"]).toBe("nosniff");
   expect(response!.headers()["x-frame-options"]).toBe("DENY");
+  expect(response!.headers()["x-powered-by"]).toBeUndefined();
 });
 
 test("sets CSP on migrated admin pages", async ({ page, context }) => {

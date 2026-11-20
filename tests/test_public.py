@@ -64,6 +64,18 @@ def test_rss_and_sitemap(client):
     assert "正文占位内容" in (encoded.text or "")
 
 
+def test_feed_head_requests(client):
+    cases = (
+        ("/rss.xml", "application/rss+xml"),
+        ("/sitemap.xml", "application/xml"),
+        ("/robots.txt", "text/plain"),
+    )
+    for path, media_type in cases:
+        response = client.head(path)
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith(media_type)
+
+
 def test_404_page(client):
     response = client.get("/nope")
     assert response.status_code == 404
@@ -143,6 +155,7 @@ def test_robots_and_favicon(client):
     robots = client.get("/robots.txt")
     assert robots.status_code == 200
     assert "Disallow: /admin/" in robots.text
+    assert "Disallow: /admin\n" in robots.text
     assert "Disallow: /login" in robots.text
     assert "Sitemap:" in robots.text
 

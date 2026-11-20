@@ -5,5 +5,5 @@ set -eu
 
 exec /usr/bin/rclone \
     --config /etc/rclone.conf \
-    sync /srv/blog/backups/ "${RCLONE_REMOTE}:/blog-backups" \
+    sync /var/www/Denjeb-s-personal-blog/backups/ "${RCLONE_REMOTE}:/blog-backups" \
     --delete-after

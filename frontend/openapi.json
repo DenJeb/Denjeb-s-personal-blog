@@ -2751,6 +2751,20 @@
             }
           }
         }
+      },
+      "head": {
+        "summary": "Rss Feed Head",
+        "operationId": "rss_feed_head_rss_xml_head",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
       }
     },
     "/sitemap.xml": {
@@ -2767,12 +2781,40 @@
             }
           }
         }
+      },
+      "head": {
+        "summary": "Sitemap Head",
+        "operationId": "sitemap_head_sitemap_xml_head",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
       }
     },
     "/robots.txt": {
       "get": {
         "summary": "Robots Txt",
         "operationId": "robots_txt_robots_txt_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "summary": "Robots Txt Head",
+        "operationId": "robots_txt_head_robots_txt_head",
         "responses": {
           "200": {
             "description": "Successful Response",

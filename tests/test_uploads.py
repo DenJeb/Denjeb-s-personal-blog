@@ -172,3 +172,17 @@ def test_save_uploaded_image_rejects_large_file():
     )
     with pytest.raises(ValueError, match="5 MB"):
         save_uploaded_image(upload)
+
+
+def test_process_image_strips_static_webp_exif():
+    image = Image.new("RGB", (10, 10), (255, 0, 0))
+    exif = image.getexif()
+    exif[274] = 6
+    buffer = BytesIO()
+    image.save(buffer, format="WEBP", exif=exif.tobytes())
+
+    data, extension = process_image(buffer.getvalue())
+
+    assert extension == ".webp"
+    with Image.open(BytesIO(data)) as result:
+        assert not result.getexif()

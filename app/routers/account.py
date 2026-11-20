@@ -453,9 +453,18 @@ def user_forgot_password(
 
     user = db.scalar(select(User).where(User.email == email))
     if user is None:
-        request.session[SESSION_RESET] = {"code_id": None, "email": email}
+        request.session.pop(SESSION_RESET, None)
         _record_reset(db, ip)
-        return RedirectResponse("/reset-password", status_code=303)
+        return templates.TemplateResponse(
+            request=request,
+            name="account/forgot_password.html",
+            context={
+                "app_name": settings.app_name,
+                "error": "该邮箱尚未注册，请先注册。",
+                "email": email,
+            },
+            status_code=400,
+        )
 
     if _email_code_is_blocked(
         db,

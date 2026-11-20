@@ -121,3 +121,20 @@ def test_import_restores_new_content(tmp_path, user_client):
         )
         assert message is not None
         assert message.user_id == user_id
+
+
+def test_import_cli_requires_yes(monkeypatch):
+    import sys
+
+    import pytest
+
+    from app import content_io
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["content_io", "import", "/nonexistent.json", "--replace"],
+    )
+    with pytest.raises(SystemExit) as exc:
+        content_io.main()
+    assert "--yes" in str(exc.value)

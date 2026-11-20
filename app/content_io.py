@@ -242,11 +242,18 @@ def main() -> None:
         action="store_true",
         help="导入成功后删除没有被文章引用的图片",
     )
+    import_parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="确认覆盖现有内容",
+    )
 
     args = parser.parse_args()
     if args.command == "export":
         export_content(Path(args.path))
     else:
+        if not args.yes:
+            raise SystemExit("导入会覆盖现有内容，请加 --yes 确认。")
         import_content(
             Path(args.path),
             replace=args.replace,

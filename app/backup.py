@@ -12,6 +12,7 @@ from pathlib import Path
 from sqlalchemy.engine import make_url
 
 from app.config import PROJECT_DIR, settings
+from app.content_io import export_content
 
 APP_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = APP_DIR / "static" / "uploads"
@@ -45,6 +46,11 @@ def backup() -> Path:
         raise SystemExit(
             "找不到 mysqldump，请在 .env 里把 MYSQLDUMP_PATH 设为完整路径。"
         )
+
+    try:
+        export_content(CONTENT_BACKUP)
+    except Exception as exc:
+        raise SystemExit(f"导出内容 JSON 失败：{exc}") from exc
 
     timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S-%f")
     BACKUP_ROOT.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -84,8 +90,7 @@ def backup() -> Path:
     if UPLOAD_DIR.is_dir():
         shutil.copytree(UPLOAD_DIR, target / "uploads", dirs_exist_ok=True)
 
-    if CONTENT_BACKUP.is_file():
-        shutil.copy2(CONTENT_BACKUP, target / "content-backup.json")
+    shutil.copy2(CONTENT_BACKUP, target / "content-backup.json")
 
     prune_old_backups()
     print(f"备份完成：{target}")

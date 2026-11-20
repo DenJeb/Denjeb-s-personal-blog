@@ -26,6 +26,7 @@ const rewrites = proxyPaths.flatMap((path) => [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  poweredByHeader: false,
   async rewrites() {
     // Use fallback so filesystem routes (including dynamic admin pages such as
     // /admin/moments/[id]/edit) win over the legacy Jinja admin pages; only

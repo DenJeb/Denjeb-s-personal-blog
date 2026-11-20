@@ -1,6 +1,6 @@
 # 部署清单
 
-以下以 Ubuntu + Nginx + systemd 为例，路径统一假设为 `/srv/blog`，域名假设为 `yourdomain.com`。
+以下以 Ubuntu + Nginx + systemd 为例，路径统一假设为 `/var/www/Denjeb-s-personal-blog`，域名假设为 `yourdomain.com`。
 
 ## 1. 服务器准备
 
@@ -14,9 +14,9 @@ sudo apt install -y python3 python3-venv python3-pip mysql-server nginx certbot 
 ## 2. 部署代码
 
 ```bash
-sudo mkdir -p /srv/blog
-sudo chown -R $USER:$USER /srv/blog
-cd /srv/blog
+sudo mkdir -p /var/www/Denjeb-s-personal-blog
+sudo chown -R $USER:$USER /var/www/Denjeb-s-personal-blog
+cd /var/www/Denjeb-s-personal-blog
 git clone <你的仓库地址> .
 python3 -m venv .venv
 source .venv/bin/activate
@@ -31,6 +31,7 @@ cp .env.production.example .env
 
 修改 `.env`：
 
+- `APP_NAME=Denjeb 的个人博客`（显示名称，保留空格）
 - `DEBUG=false`
 - `SESSION_HTTPS_ONLY=true`
 - `TRUSTED_HOSTS=yourdomain.com,www.yourdomain.com,127.0.0.1`（`127.0.0.1` 给 Next.js 服务端调用 FastAPI 用；staging 再加 `staging.yourdomain.com`）
@@ -41,7 +42,7 @@ cp .env.production.example .env
 - `LEGACY_PUBLIC_SITE_ENABLED=false`，生产环境公开页面由 Next.js 提供；旧 FastAPI 公开页面只用于开发和测试
 - `EMAIL_ENABLED=true`；代码默认开启，测试环境会自动关闭
 - `ADMIN_LOGIN_CODE_ENABLED=true`；后台登录默认要求邮箱验证码
-- `DATABASE_URL` 填生产数据库
+- `DATABASE_URL` 填生产数据库；默认值只是占位符，必须显式设置
 - `SMTP_*` 填真实邮件配置；正式发信前用真实收件箱测试验证码/通知，自有域名发信需配置 SPF/DKIM/DMARC
 - `MYSQLDUMP_PATH=/usr/bin/mysqldump`
 
@@ -55,7 +56,7 @@ FLUSH PRIVILEGES;
 ```
 
 ```bash
-cd /srv/blog
+cd /var/www/Denjeb-s-personal-blog
 source .venv/bin/activate
 alembic upgrade head
 python -m app.create_admin
@@ -80,10 +81,10 @@ python -m app.create_admin --reset-totp
 如果需要恢复内容：
 
 ```bash
-python -m app.content_io import --replace
+python -m app.content_io import --replace --yes
 ```
 
-内容备份 JSON 不在 Git 仓库中，需要单独安全传输到 `/srv/blog/content/content-backup.json`。
+内容备份 JSON 不在 Git 仓库中，需要单独安全传输到 `/var/www/Denjeb-s-personal-blog/content/content-backup.json`。
 
 新评论、动态评论和留言会写入通知 outbox，由后台 timer 异步发送，不阻塞请求线程。SMTP 暂时不可用或需要立即补发时：
 
@@ -103,26 +104,26 @@ systemctl list-timers blog-notifications.timer
 
 它会每 2 分钟尝试发送一次未成功的通知；SMTP 恢复后无需手动补发。
 
-服务用户只需要读代码和写运行时目录。不要 `chown -R` 整个 `/srv/blog`，否则后续普通部署用户执行 `git pull`、`pip install`、`npm ci`、`npm run build` 会因没有写权限失败。
+代码和运行时目录都由部署用户 `deploy` 持有，服务也以 `deploy` 运行。不要把它们 `chown` 给其他用户，否则后续 `git pull`、`pip install`、`npm ci`、`npm run build` 会因没有写权限失败。
 
 ```bash
-sudo mkdir -p /srv/blog/app/static/uploads /srv/blog/backups /srv/blog/content
-sudo chown -R www-data:www-data \
-    /srv/blog/app/static/uploads \
-    /srv/blog/backups \
-    /srv/blog/content
+sudo mkdir -p /var/www/Denjeb-s-personal-blog/app/static/uploads /var/www/Denjeb-s-personal-blog/backups /var/www/Denjeb-s-personal-blog/content
+sudo chown -R deploy:deploy \
+    /var/www/Denjeb-s-personal-blog/app/static/uploads \
+    /var/www/Denjeb-s-personal-blog/backups \
+    /var/www/Denjeb-s-personal-blog/content
 
 # .env 由部署用户持有，服务用户组可读
-sudo chgrp www-data /srv/blog/.env
-sudo chmod 640 /srv/blog/.env
+sudo chgrp deploy /var/www/Denjeb-s-personal-blog/.env
+sudo chmod 640 /var/www/Denjeb-s-personal-blog/.env
 ```
 
-代码、`.venv`、`frontend/node_modules` 保持部署用户所有；`www-data` 默认有读/执行权限即可。`frontend/.next/cache` 需要服务用户可写，在 §12/§13 首次构建后处理。
+代码、`.venv`、`frontend/node_modules` 归 `deploy` 所有，服务也以 `deploy` 运行。`frontend/.next/cache` 需要可写，在 §12/§13 首次构建后处理。
 
 需要手动执行会写 `uploads/`、`backups/` 或 `content/` 的命令时（例如 `python -m app.backup`、`python -m app.content_io export`），用服务用户运行：
 
 ```bash
-sudo -u www-data -H /srv/blog/.venv/bin/python -m app.backup
+sudo -u deploy -H /var/www/Denjeb-s-personal-blog/.venv/bin/python -m app.backup
 ```
 
 ## 5. systemd
@@ -162,7 +163,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-把配置里的域名、证书路径和 `/srv/blog` 改成实际值。`nginx.conf` 里已经包含静态文件、限流、HSTS 和安全响应头。
+把配置里的域名、证书路径和 `/var/www/Denjeb-s-personal-blog` 改成实际值。`nginx.conf` 里已经包含静态文件、限流、HSTS 和安全响应头。
 
 `SESSION_HTTPS_ONLY=true` 时应用会使用 `__Host-blog_session` Cookie。`blog.service` 已经开启 `--proxy-headers`，请保留 Nginx 的 `X-Forwarded-Proto` 头，确保应用生成的绝对链接使用 HTTPS。
 
@@ -202,7 +203,9 @@ sudo systemctl enable --now blog-backup.timer
 systemctl list-timers blog-backup.timer
 ```
 
-`app/backup.py` 会把 MySQL、上传图片和内容 JSON 写到 `/srv/blog/backups/<时间戳>/`，默认只保留最近 `BACKUP_KEEP=14` 个备份，并把备份目录权限设为 `700`。
+`app/backup.py` 会把 MySQL、上传图片和内容 JSON 写到 `/var/www/Denjeb-s-personal-blog/backups/<时间戳>/`，默认只保留最近 `BACKUP_KEEP=14` 个备份，并把备份目录权限设为 `700`。备份前会先从数据库重新导出 `content/content-backup.json`，确保备份里的 JSON 与数据库一致。
+
+恢复时优先使用 `backups/<时间戳>/database.sql`；`content-backup.json` 只用于内容导入/导出，导入前先执行 `python -m app.content_io export` 生成最新快照，并且导入命令需要 `--replace --yes`。
 
 ### 8.1 异地备份（建议）
 
@@ -211,7 +214,7 @@ systemctl list-timers blog-backup.timer
 ```bash
 sudo apt install -y rclone
 sudo rclone config --config /etc/rclone.conf
-sudo chown root:www-data /etc/rclone.conf
+sudo chown root:deploy /etc/rclone.conf
 sudo chmod 640 /etc/rclone.conf
 
 sudo cp deploy/blog-offsite-backup.env.example /etc/default/blog-offsite-backup
@@ -232,7 +235,7 @@ journalctl -u blog-offsite-backup.service -n 50
 不要直接拿正式库试恢复。先确认备份可用：
 
 ```bash
-cd /srv/blog
+cd /var/www/Denjeb-s-personal-blog
 source .venv/bin/activate
 python -m app.rehearse_restore
 ```
@@ -275,28 +278,27 @@ curl -I https://yourdomain.com/static/css/pico.min.css
 ## 11. 更新流程
 
 ```bash
-cd /srv/blog
+cd /var/www/Denjeb-s-personal-blog
 source .venv/bin/activate
 git pull
 pip install -r requirements.txt
 alembic upgrade head
 sudo systemctl restart blog
 
-cd /srv/blog/frontend
+cd /var/www/Denjeb-s-personal-blog/frontend
 npm ci
 npm run build
-sudo mkdir -p /srv/blog/frontend/.next/cache
-sudo chown -R www-data:www-data /srv/blog/frontend/.next/cache
+sudo mkdir -p /var/www/Denjeb-s-personal-blog/frontend/.next/cache
+sudo chown -R deploy:deploy /var/www/Denjeb-s-personal-blog/frontend/.next/cache
 sudo systemctl restart nextjs
 ```
 
-以上命令以部署用户执行；代码、`.venv`、`node_modules` 必须归部署用户所有，`www-data` 只保留读权限和 §4 中那几个运行时目录的写权限。
+以上命令以部署用户 `deploy` 执行；代码、`.venv`、`node_modules` 归 `deploy` 所有，服务也以 `deploy` 运行。Nginx 只读取静态文件。
 
-如果之前已经执行过 `sudo chown -R www-data:www-data /srv/blog`，先改回来：
+如果之前把代码误 `chown` 给了其他用户，改回 `deploy`：
 
 ```bash
-sudo chown -R "$USER":"$USER" /srv/blog
-# 再按 §4 只授权 uploads / backups / content 和 .env
+sudo chown -R deploy:deploy /var/www/Denjeb-s-personal-blog
 ```
 
 `NEXT_PUBLIC_SITE_URL` 只在构建时生效，生产环境更新后必须重新 `npm run build`。
@@ -315,7 +317,17 @@ GitHub Actions 会在 push / PR 时用 MySQL 8 测试库执行同样的检查；
 
 公开前台、密码登录页 `/login`、账户页 `/account` 和后台日常页面（仪表盘、文章列表/新建/编辑、评论审核、动态、动态评论、留言、用户、图片、安全设置）已切到 Next.js；管理员登录 `/admin/login`、旧文章预览 `/admin/posts/{id}/preview`、`/login/code`、注册/找回密码、`/account/delete`、`/api`、`/static` 和 feed 仍由 FastAPI 提供。
 
-先安装 Node.js 24 和 npm。建议用 NodeSource 安装系统级 Node.js（`nextjs.service` 使用 `/usr/bin/npm`）；如果坚持用 nvm，需要把 `ExecStart` 改成 `www-data` 可执行的绝对路径。然后在 `/srv/blog/frontend` 创建 `.env.production`：
+先安装 Node.js 24 和 npm。建议用 NodeSource 安装系统级 Node.js（`nextjs.service` 使用 `/usr/bin/npm`）；如果坚持用 nvm，需要把 `ExecStart` 改成 `deploy` 可执行的绝对路径。
+
+如果国内服务器执行 `npm ci` 很慢或卡住，`package-lock.json` 里的 tarball 地址是 `registry.npmjs.org`；以部署用户配置镜像后重试：
+
+```bash
+npm config set registry https://registry.npmmirror.com
+npm config set replace-registry-host always
+npm ci --no-audit --no-fund
+```
+
+然后在 `/var/www/Denjeb-s-personal-blog/frontend` 创建 `.env.production`：
 
 ```env
 API_BASE_URL=http://127.0.0.1:8000
@@ -327,11 +339,11 @@ NEXT_PUBLIC_SITE_URL=https://staging.yourdomain.com
 然后再构建：
 
 ```bash
-cd /srv/blog/frontend
+cd /var/www/Denjeb-s-personal-blog/frontend
 npm ci
 npm run build
-sudo mkdir -p /srv/blog/frontend/.next/cache
-sudo chown -R www-data:www-data /srv/blog/frontend/.next/cache
+sudo mkdir -p /var/www/Denjeb-s-personal-blog/frontend/.next/cache
+sudo chown -R deploy:deploy /var/www/Denjeb-s-personal-blog/frontend/.next/cache
 ```
 
 如果 staging 只有 HTTP，把 `NEXT_PUBLIC_SITE_URL` 改成 `http://staging.yourdomain.com`，否则 canonical/OG 会指向 https。
@@ -348,7 +360,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now nextjs
 ```
 
-Nginx 使用 `deploy/nginx.staging.conf`（把域名和路径替换成实际值），只影响 staging：
+Nginx 使用 `deploy/nginx.staging.conf`（把域名替换成实际值；路径已是当前服务器路径），只影响 staging：
 
 ```bash
 sudo cp deploy/nginx.staging.conf /etc/nginx/sites-available/blog-staging
@@ -379,10 +391,10 @@ staging 回滚时删除 staging server 的 Next 反代，或把 `/` 重新指回
 
 ### 13.1 先启动 Next.js
 
-在 `/srv/blog/frontend` 创建生产环境文件：
+在 `/var/www/Denjeb-s-personal-blog/frontend` 创建生产环境文件：
 
 ```bash
-cd /srv/blog/frontend
+cd /var/www/Denjeb-s-personal-blog/frontend
 cp .env.production.example .env.production
 ```
 
@@ -398,9 +410,9 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ```bash
 npm ci
 npm run build
-sudo mkdir -p /srv/blog/frontend/.next/cache
-sudo chown -R www-data:www-data /srv/blog/frontend/.next/cache
-sudo cp /srv/blog/deploy/nextjs.service /etc/systemd/system/nextjs.service
+sudo mkdir -p /var/www/Denjeb-s-personal-blog/frontend/.next/cache
+sudo chown -R deploy:deploy /var/www/Denjeb-s-personal-blog/frontend/.next/cache
+sudo cp /var/www/Denjeb-s-personal-blog/deploy/nextjs.service /etc/systemd/system/nextjs.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now nextjs
 sudo systemctl status nextjs
@@ -414,7 +426,7 @@ sudo systemctl status nextjs
 
 ```bash
 sudo cp /etc/nginx/sites-available/blog /etc/nginx/sites-available/blog.bak
-sudo cp /srv/blog/deploy/nginx.conf /etc/nginx/sites-available/blog
+sudo cp /var/www/Denjeb-s-personal-blog/deploy/nginx.conf /etc/nginx/sites-available/blog
 sudo nginx -t
 ```
 

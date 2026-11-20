@@ -45,6 +45,11 @@ if not settings.debug and settings.email_enabled and not settings.smtp_host:
         "EMAIL_ENABLED is true but SMTP_HOST is empty; "
         "verification codes will not be sent."
     )
+if settings.debug and settings.site_url.startswith("https://"):
+    logger.warning(
+        "DEBUG=true with an HTTPS SITE_URL; "
+        "verification codes may be printed to logs."
+    )
 
 app = FastAPI(
     title=settings.app_name,

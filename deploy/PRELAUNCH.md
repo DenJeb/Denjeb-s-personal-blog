@@ -31,7 +31,7 @@
   - `ADMIN_LOGIN_CODE_ENABLED=true`
   - `MYSQLDUMP_PATH`
 - [ ] 在后台「安全」页启用 TOTP，并妥善保存认证器
-- [ ] 手动执行一次 `sudo -u www-data -H /srv/blog/.venv/bin/python -m app.backup`
+- [ ] 手动执行一次 `sudo -u deploy -H /var/www/Denjeb-s-personal-blog/.venv/bin/python -m app.backup`
 - [ ] 执行一次恢复演练：`python -m app.rehearse_restore`
 - [ ] 安装并启用 `blog-backup.timer`
 - [ ] 安装并启用 `blog-offsite-backup.timer`，并用 `systemctl start blog-offsite-backup.service` 验证一次异地同步

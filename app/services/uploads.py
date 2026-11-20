@@ -50,7 +50,11 @@ def process_image(data: bytes) -> tuple[bytes, str]:
         with Image.open(BytesIO(data)) as image:
             if image.width * image.height > MAX_IMAGE_PIXELS:
                 raise ValueError("图片尺寸过大。")
-            if extension in {".gif", ".webp"}:
+            if extension == ".gif":
+                return data, extension
+            # Animated WebP frames are kept as-is; static WebP is re-encoded
+            # below so embedded EXIF/GPS metadata is dropped.
+            if extension == ".webp" and getattr(image, "is_animated", False):
                 return data, extension
 
             processed = ImageOps.exif_transpose(image)

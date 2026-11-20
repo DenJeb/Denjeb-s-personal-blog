@@ -759,6 +759,11 @@ def rss_feed(
     return Response(content=xml, media_type="application/rss+xml; charset=utf-8")
 
 
+@router.head("/rss.xml")
+def rss_feed_head() -> Response:
+    return Response(media_type="application/rss+xml; charset=utf-8")
+
+
 @router.get("/sitemap.xml")
 def sitemap(request: Request, db: DbSession) -> Response:
     urls: list[tuple[str, str | None]] = [
@@ -802,12 +807,18 @@ def sitemap(request: Request, db: DbSession) -> Response:
     return Response(content=xml, media_type="application/xml; charset=utf-8")
 
 
+@router.head("/sitemap.xml")
+def sitemap_head() -> Response:
+    return Response(media_type="application/xml; charset=utf-8")
+
+
 @router.get("/robots.txt")
 def robots_txt(request: Request) -> Response:
     base = str(request.base_url).rstrip("/")
     content = (
         "User-agent: *\n"
         "Allow: /\n"
+        "Disallow: /admin\n"
         "Disallow: /admin/\n"
         "Disallow: /account/\n"
         "Disallow: /api/\n"
@@ -819,6 +830,11 @@ def robots_txt(request: Request) -> Response:
         f"Sitemap: {base}/sitemap.xml\n"
     )
     return Response(content=content, media_type="text/plain; charset=utf-8")
+
+
+@router.head("/robots.txt")
+def robots_txt_head() -> Response:
+    return Response(media_type="text/plain; charset=utf-8")
 
 
 @router.get("/about")

@@ -2,6 +2,8 @@
 
 个人博客的 Next.js 16 App Router 前端。数据、认证和业务逻辑仍在仓库根目录的 FastAPI 后端；这里负责公开页面和后台日常管理页面。
 
+线上地址：<https://dojangbyeol.cn/>
+
 ## 环境要求
 
 - Node.js 24+

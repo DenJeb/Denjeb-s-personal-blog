@@ -4,7 +4,8 @@
 
 **记录学习、开发与生活**
 
-![Version](https://img.shields.io/badge/version-1.7.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.8.0-blue?style=flat-square)
+[![Website](https://img.shields.io/badge/website-dojangbyeol.cn-2ea44f?style=flat-square)](https://dojangbyeol.cn/)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white&style=flat-square)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black&style=flat-square)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white&style=flat-square)](https://www.typescriptlang.org/)
@@ -19,8 +20,10 @@
 
 ---
 
-一个前后端分离的个人博客：**Next.js 16 前台 + FastAPI 后端**。  
+一个前后端分离的个人博客：**Next.js 16 前台与后台日常页面 + FastAPI 后端**。  
 用 Markdown 写文章，记录零碎的想法，也欢迎留下评论和留言。
+
+**在线访问：[https://dojangbyeol.cn/](https://dojangbyeol.cn/)**
 
 ## 这里有什么
 
@@ -43,6 +46,7 @@
 
 博客还在持续更新中。这里主要记录学习、开发和生活，也会发一些动态和零碎的想法。
 
+- 博客: [https://dojangbyeol.cn/](https://dojangbyeol.cn/)
 - GitHub: [@DenJeb](https://github.com/DenJeb)
 - Email: [denjeb@qq.com](mailto:denjeb@qq.com)
 

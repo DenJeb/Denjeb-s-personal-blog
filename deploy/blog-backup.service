@@ -4,8 +4,8 @@ After=network.target mysql.service
 
 [Service]
 Type=oneshot
-User=www-data
-Group=www-data
-WorkingDirectory=/srv/blog
-EnvironmentFile=/srv/blog/.env
-ExecStart=/srv/blog/.venv/bin/python -m app.backup
+User=deploy
+Group=deploy
+WorkingDirectory=/var/www/Denjeb-s-personal-blog
+EnvironmentFile=/var/www/Denjeb-s-personal-blog/.env
+ExecStart=/var/www/Denjeb-s-personal-blog/.venv/bin/python -m app.backup
