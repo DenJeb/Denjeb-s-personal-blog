@@ -119,8 +119,8 @@ def user_register(
     db: DbSession,
     email: str = Form(..., max_length=255),
     nickname: str = Form(..., max_length=30),
-    password: str = Form(...),
-    confirm: str = Form(...),
+    password: str = Form(..., max_length=200),
+    confirm: str = Form(..., max_length=200),
     next: str = Form(""),
     website: str = Form(""),
     _csrf: None = Depends(verify_csrf),
@@ -515,8 +515,8 @@ def user_reset_password(
     request: Request,
     db: DbSession,
     code: str = Form(...),
-    password: str = Form(...),
-    confirm: str = Form(...),
+    password: str = Form(..., max_length=200),
+    confirm: str = Form(..., max_length=200),
     _csrf: None = Depends(verify_csrf),
 ):
     pending = request.session.get(SESSION_RESET)
@@ -607,7 +607,7 @@ def user_login(
     request: Request,
     db: DbSession,
     email: str = Form(...),
-    password: str = Form(...),
+    password: str = Form(..., max_length=200),
     next: str = Form(""),
     _csrf: None = Depends(verify_csrf),
 ):
@@ -914,7 +914,7 @@ def user_delete_page(request: Request):
 def user_delete_account(
     request: Request,
     db: DbSession,
-    password: str = Form(...),
+    password: str = Form(..., max_length=200),
     _csrf: None = Depends(verify_csrf),
 ):
     user = getattr(request.state, "user", None)

@@ -684,3 +684,40 @@ def test_password_reset_invalidates_existing_sessions(monkeypatch):
             assert client.get("/login", follow_redirects=False).status_code == 200
     finally:
         _cleanup_deleted_user()
+
+
+def test_unknown_email_still_runs_password_verify(monkeypatch):
+    calls: list[str] = []
+
+    def fake_verify(password: str, password_hash: str) -> bool:
+        calls.append(password_hash)
+        return False
+
+    monkeypatch.setattr(accounts_service._password_hash, "verify", fake_verify)
+    with SessionLocal() as db:
+        result = accounts_service.authenticate_password(
+            db,
+            "__pytest_missing_timing@example.com",
+            "pw",
+            "127.0.0.99",
+        )
+
+    assert result.reason == "invalid"
+    assert len(calls) == 1
+
+
+def test_register_rejects_overlong_password(client):
+    token = csrf_token(client.get("/register").text)
+    password = "x" * 201
+    response = client.post(
+        "/register",
+        data={
+            "csrf_token": token,
+            "email": "__pytest_long_password@example.com",
+            "nickname": "__pytest_long_password__",
+            "password": password,
+            "confirm": password,
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 422

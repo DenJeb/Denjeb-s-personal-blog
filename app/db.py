@@ -2,6 +2,7 @@
 ========== 数据库连接 ==========
 """
 
+import re
 from collections.abc import Generator
 
 from sqlalchemy import create_engine, event
@@ -29,7 +30,10 @@ elif engine.dialect.name in {"mysql", "mariadb"}:
         # 让 NOW() 和 CURRENT_TIMESTAMP 使用站点时区，而不是服务器默认时区。
         cursor = dbapi_connection.cursor()
         try:
-            cursor.execute(f"SET time_zone = '{mysql_timezone_offset()}'")
+            offset = mysql_timezone_offset()
+            if re.fullmatch(r"[+-]\d{2}:\d{2}", offset) is None:
+                raise RuntimeError(f"非法 MySQL 时区偏移：{offset!r}")
+            cursor.execute(f"SET time_zone = '{offset}'")
         finally:
             cursor.close()
 

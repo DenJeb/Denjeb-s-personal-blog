@@ -24,6 +24,28 @@ from app.templating import templates
 APP_DIR = Path(__file__).resolve().parent
 logger = logging.getLogger(__name__)
 
+if not settings.debug and (
+    "localhost" in settings.site_url or "127.0.0.1" in settings.site_url
+):
+    logger.warning(
+        "SITE_URL still points to localhost; set SITE_URL to the public site URL."
+    )
+if settings.site_url.startswith("https://") and not settings.session_https_only:
+    logger.warning(
+        "SITE_URL is HTTPS but SESSION_HTTPS_ONLY is false; "
+        "session cookies will not be Secure."
+    )
+if not settings.debug and settings.legacy_public_site_enabled:
+    logger.warning(
+        "LEGACY_PUBLIC_SITE_ENABLED is true in production; "
+        "old public pages are still accessible."
+    )
+if not settings.debug and settings.email_enabled and not settings.smtp_host:
+    logger.warning(
+        "EMAIL_ENABLED is true but SMTP_HOST is empty; "
+        "verification codes will not be sent."
+    )
+
 app = FastAPI(
     title=settings.app_name,
     debug=settings.debug,

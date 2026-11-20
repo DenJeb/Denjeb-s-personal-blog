@@ -5,6 +5,12 @@
 from app import backup
 
 
+def test_backup_name_re_accepts_legacy_and_microsecond_names():
+    assert backup.BACKUP_NAME_RE.fullmatch("20260101-000000")
+    assert backup.BACKUP_NAME_RE.fullmatch("20260101-000000-123456")
+    assert not backup.BACKUP_NAME_RE.fullmatch("not-a-backup")
+
+
 def test_prune_old_backups(tmp_path, monkeypatch):
     monkeypatch.setattr(backup, "BACKUP_ROOT", tmp_path)
 

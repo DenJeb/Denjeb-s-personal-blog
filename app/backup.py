@@ -17,7 +17,7 @@ APP_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = APP_DIR / "static" / "uploads"
 CONTENT_BACKUP = PROJECT_DIR / "content" / "content-backup.json"
 BACKUP_ROOT = PROJECT_DIR / "backups"
-BACKUP_NAME_RE = re.compile(r"^\d{8}-\d{6}$")
+BACKUP_NAME_RE = re.compile(r"^\d{8}-\d{6}(-\d{6})?$")
 
 
 def prune_old_backups(keep: int | None = None) -> None:
@@ -46,7 +46,7 @@ def backup() -> Path:
             "找不到 mysqldump，请在 .env 里把 MYSQLDUMP_PATH 设为完整路径。"
         )
 
-    timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S-%f")
     BACKUP_ROOT.mkdir(parents=True, exist_ok=True, mode=0o700)
     target = BACKUP_ROOT / timestamp
     target.mkdir(parents=True, exist_ok=False, mode=0o700)

@@ -26,6 +26,9 @@ EMAIL_BLOCK_HOURS = 24
 LOGIN_WINDOW_SECONDS = 300
 LOGIN_MAX_FAILURES = 5
 _password_hash = PasswordHash.recommended()
+# A valid hash used to keep the verify step for unknown emails; without it a
+# missing account answers noticeably faster than an existing one.
+_DUMMY_HASH = _password_hash.hash("__dummy_password_for_timing__")
 
 
 @dataclass(frozen=True)
@@ -51,14 +54,20 @@ def authenticate_password(
         return LoginResult(None, "blocked", "尝试次数过多，请 5 分钟后再试。")
 
     user = db.scalar(select(User).where(User.email == email))
-    valid = False
-    if user is not None:
+    if user is None:
         try:
-            valid = _password_hash.verify(password, user.password_hash)
+            _password_hash.verify(password, _DUMMY_HASH)
         except UnknownHashError:
-            valid = False
+            pass
+        record_event(db, _login_bucket(ip))
+        return LoginResult(None, "invalid", "邮箱或密码错误")
 
-    if user is None or not valid:
+    try:
+        valid = _password_hash.verify(password, user.password_hash)
+    except UnknownHashError:
+        valid = False
+
+    if not valid:
         record_event(db, _login_bucket(ip))
         return LoginResult(None, "invalid", "邮箱或密码错误")
 

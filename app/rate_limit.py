@@ -42,7 +42,9 @@ def is_rate_limited(
         )
         or 0
     )
-    db.commit()
+    # Do not commit here: a limit check must not commit unrelated pending work
+    # in the caller's session. The cleanup delete is committed by the caller's
+    # subsequent record_event/clear_bucket call.
     return count >= max_events
 
 
