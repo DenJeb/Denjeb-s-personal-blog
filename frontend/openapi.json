@@ -6596,6 +6596,7 @@
         "properties": {
           "password": {
             "type": "string",
+            "maxLength": 200,
             "title": "Password"
           },
           "csrf_token": {
@@ -6690,6 +6691,7 @@
           },
           "password": {
             "type": "string",
+            "maxLength": 200,
             "title": "Password"
           },
           "next": {
@@ -6737,10 +6739,12 @@
           },
           "password": {
             "type": "string",
+            "maxLength": 200,
             "title": "Password"
           },
           "confirm": {
             "type": "string",
+            "maxLength": 200,
             "title": "Confirm"
           },
           "next": {
@@ -6807,10 +6811,12 @@
           },
           "password": {
             "type": "string",
+            "maxLength": 200,
             "title": "Password"
           },
           "confirm": {
             "type": "string",
+            "maxLength": 200,
             "title": "Confirm"
           },
           "csrf_token": {
